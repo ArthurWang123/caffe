@@ -159,7 +159,7 @@ void DataAugmentationLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   (*top)[0]->Reshape(num, channels, crop_size, crop_size);
   
   if (output_params_) {
-    num_params_ = 20;
+    num_params_ = 35;
     (*top)[1]->Reshape(num, num_params_, 1, 1);
   }
   
@@ -450,35 +450,31 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
         do_col_rotate = (fabs(col_angle) > 1e-2);
       do_chromatic_transform = (do_chromatic_transform || do_lmult_pow || do_lmult_add || do_lmult_mult || do_col_rotate);
       
-//       if (output_params_) {
-//         Dtype* top_params = (*top)[1]->mutable_cpu_data();
-//         if (do_lmult_pow)
-//           top_params[item_id * num_params_ + 5] = log(lmult_pow_coeff);
-//         if (do_lmult_add)
-//           top_params[item_id * num_params_ + 6] = lmult_add_coeff;
-//         if (do_lmult_mult)
-//           top_params[item_id * num_params_ + 7] = log(lmult_mult_coeff);
-//         if (do_pow[0])
-//           top_params[item_id * num_params_ + 8] = log(pow_coeffs[0]);
-//         if (do_add[0])
-//           top_params[item_id * num_params_ + 9] = add_coeffs[0];
-//         if (do_mult[0])
-//           top_params[item_id * num_params_ + 10] = log(mult_coeffs[0]);
-//         if (do_pow[1])
-//           top_params[item_id * num_params_ + 11] = log(pow_coeffs[1]);
-//         if (do_add[1])
-//           top_params[item_id * num_params_ + 12] = add_coeffs[1];
-//         if (do_mult[1])
-//           top_params[item_id * num_params_ + 13] = log(mult_coeffs[1]);
-//         if (do_pow[2])
-//           top_params[item_id * num_params_ + 14] = log(pow_coeffs[2]);
-//         if (do_add[2])
-//           top_params[item_id * num_params_ + 15] = add_coeffs[2];
-//         if (do_mult[2])
-//           top_params[item_id * num_params_ + 16] = log(mult_coeffs[2]);
-//         if (do_col_rotate)
-//           top_params[item_id * num_params_ + 17] = col_angle;       
-//       }
+      if (output_params_) {
+        Dtype* top_params = (*top)[1]->mutable_cpu_data();
+        top_params[item_id * num_params_ + 10] = log(lmult_pow_coeff);
+        top_params[item_id * num_params_ + 11] = lmult_add_coeff;
+        top_params[item_id * num_params_ + 12] = log(lmult_mult_coeff);
+        top_params[item_id * num_params_ + 13] = log(pow_coeffs_nomean[0]);
+        top_params[item_id * num_params_ + 14] = add_coeffs_nomean[0];
+        top_params[item_id * num_params_ + 15] = log(mult_coeffs_nomean[0]);
+        top_params[item_id * num_params_ + 16] = log(pow_coeffs_nomean[1]);
+        top_params[item_id * num_params_ + 17] = add_coeffs_nomean[1];
+        top_params[item_id * num_params_ + 18] = log(mult_coeffs_nomean[1]);
+        top_params[item_id * num_params_ + 19] = log(pow_coeffs_nomean[2]);
+        top_params[item_id * num_params_ + 20] = add_coeffs_nomean[2];
+        top_params[item_id * num_params_ + 21] = log(mult_coeffs_nomean[2]);
+        top_params[item_id * num_params_ + 22] = log(pow_coeffs_withmean[0]);
+        top_params[item_id * num_params_ + 23] = add_coeffs_withmean[0];
+        top_params[item_id * num_params_ + 24] = log(mult_coeffs_withmean[0]);
+        top_params[item_id * num_params_ + 25] = log(pow_coeffs_withmean[1]);
+        top_params[item_id * num_params_ + 26] = add_coeffs_withmean[1];
+        top_params[item_id * num_params_ + 27] = log(mult_coeffs_withmean[1]);
+        top_params[item_id * num_params_ + 28] = log(pow_coeffs_withmean[2]);
+        top_params[item_id * num_params_ + 29] = add_coeffs_withmean[2];
+        top_params[item_id * num_params_ + 30] = log(mult_coeffs_withmean[2]);
+        top_params[item_id * num_params_ + 31] = col_angle;       
+      }
     }      
     
     
