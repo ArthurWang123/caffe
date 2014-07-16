@@ -231,6 +231,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
     Dtype lmult_add_coeff;  
     Dtype pow_coeffs [3];
     Dtype mult_coeffs [3];
+    Dtype mean_mult_coeffs [3];
     Dtype add_coeffs [3];  
     Dtype pow_factor;
     Dtype mult_factor;
@@ -265,10 +266,11 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       lmult_add_coeff = 0.;  
       pow_coeffs[0] = 1.;  pow_coeffs[1] = 1.;  pow_coeffs[2] = 1.; 
       mult_coeffs[0] = 1.; mult_coeffs[1] = 1.; mult_coeffs[2] = 1.; 
+      mean_mult_coeffs[0] = 1.; mean_mult_coeffs[1] = 1.; mean_mult_coeffs[2] = 1.; 
       add_coeffs[0] = 0.;  add_coeffs[1] = 0.;  add_coeffs[2] = 0.;   
       pow_factor = 1.;
       mult_factor = 1.;
-      add_factor = 1.;
+      add_factor = 0.;
       col_angle = 0.;
     }
       
@@ -344,7 +346,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       
       if (write_augmented.size()) { 
         if (do_spatial_transform)
-          LOG(INFO) << " Augmenting. angle: " << angle << ", zoom: " << zoom_coeff << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
+          LOG(INFO) << "Augmenting " << item_id << ". angle: " << angle << ", zoom: " << zoom_coeff << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
         else
           LOG(INFO) << "Couldn't find appropriate spatial augmentation parameters";
       }  
@@ -392,8 +394,11 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       for (c=1; c<3; c++) {
         if (aug.has_sat_pow())
           pow_coeffs[c] = caffe_rng_generate<float>(aug.sat_pow());
-        if (aug.has_sat_mult())
+        if (aug.has_sat_mult()) {
           mult_coeffs[c] = caffe_rng_generate<float>(aug.sat_mult());
+//           mean_mult_coeffs[c] = caffe_rng_generate<float>(aug.sat_mult());
+          mean_mult_coeffs[c] = mult_coeffs[c];
+        }
         if (aug.has_sat_add())
           add_coeffs[c] = caffe_rng_generate<float>(aug.sat_add());
       }
@@ -416,7 +421,11 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       add_coeffs[2] = add_coeffs[2] - add_factor;
       
       if (write_augmented.size()) {
-        LOG(INFO) << "Augmenting. lmult_pow: " << lmult_pow_coeff << ", lmult_mult: " << lmult_mult_coeff << ", lmult_add: " << lmult_add_coeff;      
+        LOG(INFO) << "Augmenting " << item_id << ". lmult_pow: " << lmult_pow_coeff << ", lmult_mult: " << lmult_mult_coeff << ", lmult_add: " << lmult_add_coeff
+        << ", pow[0]: " << pow_coeffs[0]    << ", mult[0]: " << mult_coeffs[0]    << ", add[0]: " << add_coeffs[0]
+        << ", pow[1]: " << pow_coeffs[1]    << ", mult[1]: " << mult_coeffs[1]    << ", add[1]: " << add_coeffs[1]
+        << ", pow[2]: " << pow_coeffs[2]    << ", mult[2]: " << mult_coeffs[2]    << ", add[2]: " << add_coeffs[2]
+        << ", col_angle: " << col_angle;
       }
       
       do_chromatic_transform = false;
@@ -566,8 +575,12 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       Dtype l;
       Dtype rgb [3];
       Dtype eig [3];
+      Dtype mean_eig [3];
       Dtype max_abs_eig[3] = {0., 0., 0.};
-      Dtype max_abs_rgb[3] = {0., 0., 0.};
+      Dtype max_rgb[3] = {0., 0., 0.};
+      Dtype min_rgb[3] = {0., 0., 0.};
+      Dtype mean_rgb[3] = {0., 0., 0.};
+//      const Dtype eigvec [9] = {0.57, 0.58, 0.57, -0.72, 0.03, 0.68, -0.38, 0.81, -0.44};
       const Dtype eigvec [9] = {0.5579, 0.5859, 0.5878, 0.8021, -0.1989, -0.5631, -0.2130, 0.7856, -0.5809};
 //       const Dtype eigvec [9] = {0.5878, 0.5859, 0.5579, -0.5631, -0.1989, 0.8021, -0.5809, 0.7856, -0.2130};
       // compute max abs values of eigs (projections onto color space eigenvectors)
@@ -579,19 +592,46 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
             eig[c] = eigvec[3*c] * rgb[0] + eigvec[3*c+1] * rgb[1] + eigvec[3*c+2] * rgb[2];
             if (fabs(eig[c]) > max_abs_eig[c])
               max_abs_eig[c] = fabs(eig[c]);
-            if (fabs(rgb[c]) > max_abs_rgb[c])
-              max_abs_rgb[c] = fabs(rgb[c]);
+            if (rgb[c] > max_rgb[c])
+              max_rgb[c] = rgb[c];
+            if (rgb[c] < min_rgb[c])
+              min_rgb[c] = rgb[c];
+            mean_rgb[c] = mean_rgb[c] + rgb[c]/crop_size/crop_size;
           }
         }
       }
+        
       // actually apply the transform
+      for (c=0; c<channels; c++) 
+        mean_eig[c] = eigvec[3*c] * mean_rgb[0] + eigvec[3*c+1] * mean_rgb[1] + eigvec[3*c+2] * mean_rgb[2];
+      for (c=1; c<channels; c++) {
+//           if (do_pow[c])            
+//             eig[c] = static_cast<float>(sgn(eig[c])) * pow(fabs(eig[c]), pow_coeffs[c]);
+//           if (do_add[c])                 
+//             if (sgn(eig[c]) != sgn(eig[c] + add_coeffs[c]))
+//               eig[c] = 0.;
+//             else
+//                 eig[c] = eig[c] + add_coeffs[c];
+        if (do_mult[c])
+          mean_eig[c] = mean_eig[c] * mean_mult_coeffs[c];
+      }
+      if (do_col_rotate) {
+        Dtype temp1, temp2;
+        temp1 =  cos(col_angle) * mean_eig[1] - sin(col_angle) * mean_eig[2];
+        temp2 =  sin(col_angle) * mean_eig[1] + cos(col_angle) * mean_eig[2]; 
+        mean_eig[1] = temp1;
+        mean_eig[2] = temp2;
+      }  
+        
       for (x=0; x<crop_size; x++) {
         for (y=0; y<crop_size; y++) {
-          for (c=0; c<channels; c++)
+          for (c=0; c<channels; c++) {
             rgb[c] = top_data[((item_id*channels + c)*crop_size + x)*crop_size + y];
+            rgb[c] = rgb[c] - mean_rgb[c];
+          }
           for (c=0; c<channels; c++) {
             eig[c] = eigvec[3*c] * rgb[0] + eigvec[3*c+1] * rgb[1] + eigvec[3*c+2] * rgb[2];
-            if ( max_abs_eig[c] > 1e-5 ) {
+            if ( max_abs_eig[c] > 1e-2 ) {
               eig[c] = eig[c] / max_abs_eig[c]; 
               if (do_pow[c])            
                 eig[c] = static_cast<float>(sgn(eig[c])) * pow(fabs(eig[c]), pow_coeffs[c]);
@@ -605,15 +645,31 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
             }
           }
           if (do_col_rotate) {
-            eig[1] =  cos(col_angle) * eig[1] - sin(col_angle) * eig[2];
-            eig[2] =  sin(col_angle) * eig[1] + cos(col_angle) * eig[2];          
+            Dtype temp1, temp2;
+            temp1 =  cos(col_angle) * eig[1] - sin(col_angle) * eig[2];
+            temp2 =  sin(col_angle) * eig[1] + cos(col_angle) * eig[2]; 
+            eig[1] = temp1;
+            eig[2] = temp2;
           }
           for (c=0; c<channels; c++) {
-            if ( max_abs_eig[c] > 1e-5 ) {
+            if ( max_abs_eig[c] > 1e-2 ) {
               eig[c] = eig[c] * max_abs_eig[c]; 
             }
           }
-          if ( max_abs_eig[0] > 1e-5 ) {
+          for (c=0; c<channels; c++)
+            eig[c] = eig[c] + mean_eig[c];
+          for (c=0; c<channels; c++) {
+            rgb[c] = eigvec[c] * eig[0] + eigvec[3+c] * eig[1] + eigvec[6+c] * eig[2];
+//             rgb[c] = rgb[c] + mean_rgb[c];
+            if (rgb[c] > aug.max_multiplier()*max_rgb[c])
+              rgb[c] = aug.max_multiplier()*max_rgb[c];
+            if (rgb[c] < aug.max_multiplier()*min_rgb[c])
+              rgb[c] = aug.max_multiplier()*min_rgb[c];
+          }
+//           if (eig[0] < 0)
+//            eig[0] = 0.;
+          if ( max_abs_eig[0] > 1e-2 ) {
+            eig[0] = eigvec[0] * rgb[0] + eigvec[1] * rgb[1] + eigvec[2] * rgb[2];
             if (do_lmult_pow)
               l = pow(fabs(eig[0]/max_abs_eig[0]), lmult_pow_coeff);
             else
@@ -626,25 +682,22 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
             if (do_lmult_mult)
               l = l * lmult_mult_coeff;
             l = l*max_abs_eig[0];
-            if ((do_lmult_pow || do_lmult_add || do_lmult_mult) && fabs(eig[0]) > 1e-5) {
+            if ((do_lmult_pow || do_lmult_add || do_lmult_mult) && fabs(eig[0]) > 1e-2) {
               for (c=channels-1; c>=0; c--) {
-                eig[c] = eig[c] / fabs(eig[0]) * l;
+                rgb[c] = rgb[c] / fabs(eig[0]) * l;
               }
             }
           }
           for (c=0; c<channels; c++) {
-            rgb[c] = eigvec[c] * eig[0] + eigvec[3+c] * eig[1] + eigvec[6+c] * eig[2];
-            if (rgb[c] > aug.max_multiplier()*max_abs_rgb[c])
-              rgb[c] = aug.max_multiplier()*max_abs_rgb[c];
-            if (rgb[c] < -aug.max_multiplier()*max_abs_rgb[c])
-              rgb[c] = -aug.max_multiplier()*max_abs_rgb[c];
+            if (rgb[c] > aug.max_multiplier()*max_rgb[c])
+              rgb[c] = aug.max_multiplier()*max_rgb[c];
+            if (rgb[c] < aug.max_multiplier()*min_rgb[c])
+              rgb[c] = aug.max_multiplier()*min_rgb[c]; 
             top_data[((item_id*channels + c)*crop_size + x)*crop_size + y] = rgb[c];
-          }
-          
+          }          
         }
       } 
-    }
-    
+    }    
   }
   
   if(aug.recompute_mean() > 0 && num_iter_ <= aug.recompute_mean() ) {
