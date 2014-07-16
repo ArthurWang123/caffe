@@ -212,9 +212,12 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
     bool do_mirror = aug.has_mirror();
     bool do_zoom = aug.has_zoom();
     
-    bool do_pow [3] = {false, false, false};
-    bool do_mult [3] = {false, false, false};
-    bool do_add [3] = {false, false, false};
+    bool do_pow_nomean [3] = {false, false, false};
+    bool do_mult_nomean [3] = {false, false, false};
+    bool do_add_nomean [3] = {false, false, false};
+    bool do_pow_withmean [3] = {false, false, false};
+    bool do_mult_withmean [3] = {false, false, false};
+    bool do_add_withmean [3] = {false, false, false};
     bool do_lmult_pow = aug.has_lmult_pow();
     bool do_lmult_add = aug.has_lmult_add();
     bool do_lmult_mult = aug.has_lmult_mult();
@@ -229,13 +232,12 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
     Dtype lmult_pow_coeff;
     Dtype lmult_mult_coeff;
     Dtype lmult_add_coeff;  
-    Dtype pow_coeffs [3];
-    Dtype mult_coeffs [3];
-    Dtype mean_mult_coeffs [3];
-    Dtype add_coeffs [3];  
-    Dtype pow_factor;
-    Dtype mult_factor;
-    Dtype add_factor;
+    Dtype pow_coeffs_nomean [3];
+    Dtype mult_coeffs_nomean [3];
+    Dtype add_coeffs_nomean [3];
+    Dtype pow_coeffs_withmean [3];
+    Dtype mult_coeffs_withmean [3];
+    Dtype add_coeffs_withmean [3];
     Dtype col_angle;
     
     if (output_params_) {
@@ -264,13 +266,12 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       lmult_pow_coeff = 1.;
       lmult_mult_coeff = 1.;
       lmult_add_coeff = 0.;  
-      pow_coeffs[0] = 1.;  pow_coeffs[1] = 1.;  pow_coeffs[2] = 1.; 
-      mult_coeffs[0] = 1.; mult_coeffs[1] = 1.; mult_coeffs[2] = 1.; 
-      mean_mult_coeffs[0] = 1.; mean_mult_coeffs[1] = 1.; mean_mult_coeffs[2] = 1.; 
-      add_coeffs[0] = 0.;  add_coeffs[1] = 0.;  add_coeffs[2] = 0.;   
-      pow_factor = 1.;
-      mult_factor = 1.;
-      add_factor = 0.;
+      pow_coeffs_nomean[0] = 1.;  pow_coeffs_nomean[1] = 1.;  pow_coeffs_nomean[2] = 1.; 
+      mult_coeffs_nomean[0] = 1.; mult_coeffs_nomean[1] = 1.; mult_coeffs_nomean[2] = 1.; 
+      add_coeffs_nomean[0] = 0.;  add_coeffs_nomean[1] = 0.;  add_coeffs_nomean[2] = 0.; 
+      pow_coeffs_withmean[0] = 1.;  pow_coeffs_withmean[1] = 1.;  pow_coeffs_withmean[2] = 1.; 
+      mult_coeffs_withmean[0] = 1.; mult_coeffs_withmean[1] = 1.; mult_coeffs_withmean[2] = 1.; 
+      add_coeffs_withmean[0] = 0.;  add_coeffs_withmean[1] = 0.;  add_coeffs_withmean[2] = 0.;
       col_angle = 0.;
     }
       
@@ -385,65 +386,59 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
         lmult_add_coeff = caffe_rng_generate<float>(aug.lmult_add());
       
       if (aug.has_ladd_pow())
-        pow_coeffs[0] = caffe_rng_generate<float>(aug.ladd_pow());
+        pow_coeffs_nomean[0] = caffe_rng_generate<float>(aug.ladd_pow());
       if (aug.has_ladd_mult())
-        mult_coeffs[0] = caffe_rng_generate<float>(aug.ladd_mult());
+        mult_coeffs_nomean[0] = caffe_rng_generate<float>(aug.ladd_mult());
       if (aug.has_ladd_add())
-        add_coeffs[0] = caffe_rng_generate<float>(aug.ladd_add());
-      
-      for (c=1; c<3; c++) {
-        if (aug.has_sat_pow())
-          pow_coeffs[c] = caffe_rng_generate<float>(aug.sat_pow());
-        if (aug.has_sat_mult()) {
-          mult_coeffs[c] = caffe_rng_generate<float>(aug.sat_mult());
-//           mean_mult_coeffs[c] = caffe_rng_generate<float>(aug.sat_mult());
-          mean_mult_coeffs[c] = mult_coeffs[c];
-        }
-        if (aug.has_sat_add())
-          add_coeffs[c] = caffe_rng_generate<float>(aug.sat_add());
+        add_coeffs_nomean[0] = caffe_rng_generate<float>(aug.ladd_add());      
+
+      if (aug.has_sat_pow()) {
+        pow_coeffs_withmean[1] = caffe_rng_generate<float>(aug.sat_pow());
+        pow_coeffs_withmean[2] = pow_coeffs_withmean[1];
+      }
+      if (aug.has_sat_mult()) {
+        mult_coeffs_withmean[1] = caffe_rng_generate<float>(aug.sat_mult()); 
+        mult_coeffs_withmean[2] = mult_coeffs_withmean[1];
+      }
+      if (aug.has_sat_add()) {
+        add_coeffs_withmean[1] = caffe_rng_generate<float>(aug.sat_add());
+        add_coeffs_withmean[2] = add_coeffs_withmean[1];
       }
       
-      if (aug.has_col_pow())
-        pow_factor = caffe_rng_generate<float>(aug.col_pow());
-      if (aug.has_col_mult())
-        mult_factor = caffe_rng_generate<float>(aug.col_mult());
-      if (aug.has_col_add())
-        add_factor = caffe_rng_generate<float>(aug.col_add());
+      for (c=1; c<=2; c++) {
+        if (aug.has_col_pow())
+          pow_coeffs_nomean[c] = caffe_rng_generate<float>(aug.col_pow());
+        if (aug.has_col_mult())
+          mult_coeffs_nomean[c] = caffe_rng_generate<float>(aug.col_mult());
+        if (aug.has_col_add())
+          add_coeffs_nomean[c] = caffe_rng_generate<float>(aug.col_add());
+      }
       
       if (aug.has_col_rotate())
         col_angle = caffe_rng_generate<float>(aug.col_rotate());
-      
-      pow_coeffs[1] = pow_coeffs[1] * pow_factor;
-      pow_coeffs[2] = pow_coeffs[2] / pow_factor;
-      mult_coeffs[1] = mult_coeffs[1] * mult_factor;
-      mult_coeffs[2] = mult_coeffs[2] / mult_factor;
-      add_coeffs[1] = add_coeffs[1] + add_factor;
-      add_coeffs[2] = add_coeffs[2] - add_factor;
-      
+            
       if (write_augmented.size()) {
         LOG(INFO) << "Augmenting " << item_id << ". lmult_pow: " << lmult_pow_coeff << ", lmult_mult: " << lmult_mult_coeff << ", lmult_add: " << lmult_add_coeff
-        << ", pow[0]: " << pow_coeffs[0]    << ", mult[0]: " << mult_coeffs[0]    << ", add[0]: " << add_coeffs[0]
-        << ", pow[1]: " << pow_coeffs[1]    << ", mult[1]: " << mult_coeffs[1]    << ", add[1]: " << add_coeffs[1]
-        << ", pow[2]: " << pow_coeffs[2]    << ", mult[2]: " << mult_coeffs[2]    << ", add[2]: " << add_coeffs[2]
+        << ", pow_nm[0]: " << pow_coeffs_nomean[0]    << ", mult_nm[0]: " << mult_coeffs_nomean[0]    << ", add_nm[0]: " << add_coeffs_nomean[0]
+        << ", pow_nm[1]: " << pow_coeffs_nomean[1]    << ", mult_nm[1]: " << mult_coeffs_nomean[1]    << ", add_nm[1]: " << add_coeffs_nomean[1]
+        << ", pow_nm[2]: " << pow_coeffs_nomean[2]    << ", mult_nm[2]: " << mult_coeffs_nomean[2]    << ", add_nm[2]: " << add_coeffs_nomean[2]
+        << ", pow_wm[0]: " << pow_coeffs_withmean[0]    << ", mult_wm[0]: " << mult_coeffs_withmean[0]    << ", add_wm[0]: " << add_coeffs_withmean[0]
+        << ", pow_wm[1]: " << pow_coeffs_withmean[1]    << ", mult_wm[1]: " << mult_coeffs_withmean[1]    << ", add_wm[1]: " << add_coeffs_withmean[1]
+        << ", pow_wm[2]: " << pow_coeffs_withmean[2]    << ", mult_wm[2]: " << mult_coeffs_withmean[2]    << ", add_wm[2]: " << add_coeffs_withmean[2]
         << ", col_angle: " << col_angle;
       }
       
       do_chromatic_transform = false;
     
       for (c=0; c<3; c++) {
-        if (((c==1 || c==2) && (aug.has_sat_pow() || aug.has_col_pow())) || (c==0 && aug.has_ladd_pow()))
-          do_pow[c] = true;
-        if (((c==1 || c==2) && (aug.has_sat_add() || aug.has_col_add())) || (c==0 && aug.has_ladd_add()))
-          do_add[c] = true;
-        if (((c==1 || c==2) && (aug.has_sat_mult() || aug.has_col_mult())) || (c==0 && aug.has_ladd_mult()))
-          do_mult[c] = true;
-        if (do_pow[c])
-          do_pow[c] = (fabs(pow_coeffs[c] - 1.) > 1e-2);
-        if (do_add[c])
-          do_add[c] = (fabs(add_coeffs[c]) > 1e-2);
-        if (do_mult[c])
-          do_mult[c] = (fabs(mult_coeffs[c] - 1.) > 1e-2);
-        do_chromatic_transform = (do_chromatic_transform || do_pow[c] || do_add[c] || do_mult[c]);
+        do_pow_nomean[c] = (fabs(pow_coeffs_nomean[c] - 1.) > 1e-2);
+        do_add_nomean[c] = (fabs(add_coeffs_nomean[c]) > 1e-2);
+        do_mult_nomean[c] = (fabs(mult_coeffs_nomean[c] - 1.) > 1e-2);
+        do_pow_withmean[c] = (fabs(pow_coeffs_withmean[c] - 1.) > 1e-2);
+        do_add_withmean[c] = (fabs(add_coeffs_withmean[c]) > 1e-2);
+        do_mult_withmean[c] = (fabs(mult_coeffs_withmean[c] - 1.) > 1e-2);
+          
+        do_chromatic_transform = (do_chromatic_transform || do_pow_nomean[c] || do_add_nomean[c] || do_mult_nomean[c] || do_pow_withmean[c] || do_add_withmean[c] || do_mult_withmean[c]);
       }
       if (do_lmult_pow)
         do_lmult_pow = (fabs(lmult_pow_coeff - 1.) > 1e-2);
@@ -455,43 +450,40 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
         do_col_rotate = (fabs(col_angle) > 1e-2);
       do_chromatic_transform = (do_chromatic_transform || do_lmult_pow || do_lmult_add || do_lmult_mult || do_col_rotate);
       
-      if (output_params_) {
-        Dtype* top_params = (*top)[1]->mutable_cpu_data();
-        if (do_lmult_pow)
-          top_params[item_id * num_params_ + 5] = log(lmult_pow_coeff);
-        if (do_lmult_add)
-          top_params[item_id * num_params_ + 6] = lmult_add_coeff;
-        if (do_lmult_mult)
-          top_params[item_id * num_params_ + 7] = log(lmult_mult_coeff);
-        if (do_pow[0])
-          top_params[item_id * num_params_ + 8] = log(pow_coeffs[0]);
-        if (do_add[0])
-          top_params[item_id * num_params_ + 9] = add_coeffs[0];
-        if (do_mult[0])
-          top_params[item_id * num_params_ + 10] = log(mult_coeffs[0]);
-        if (do_pow[1])
-          top_params[item_id * num_params_ + 11] = log(pow_coeffs[1]);
-        if (do_add[1])
-          top_params[item_id * num_params_ + 12] = add_coeffs[1];
-        if (do_mult[1])
-          top_params[item_id * num_params_ + 13] = log(mult_coeffs[1]);
-        if (do_pow[2])
-          top_params[item_id * num_params_ + 14] = log(pow_coeffs[2]);
-        if (do_add[2])
-          top_params[item_id * num_params_ + 15] = add_coeffs[2];
-        if (do_mult[2])
-          top_params[item_id * num_params_ + 16] = log(mult_coeffs[2]);
-        if (do_col_rotate)
-          top_params[item_id * num_params_ + 17] = col_angle;       
-      }
+//       if (output_params_) {
+//         Dtype* top_params = (*top)[1]->mutable_cpu_data();
+//         if (do_lmult_pow)
+//           top_params[item_id * num_params_ + 5] = log(lmult_pow_coeff);
+//         if (do_lmult_add)
+//           top_params[item_id * num_params_ + 6] = lmult_add_coeff;
+//         if (do_lmult_mult)
+//           top_params[item_id * num_params_ + 7] = log(lmult_mult_coeff);
+//         if (do_pow[0])
+//           top_params[item_id * num_params_ + 8] = log(pow_coeffs[0]);
+//         if (do_add[0])
+//           top_params[item_id * num_params_ + 9] = add_coeffs[0];
+//         if (do_mult[0])
+//           top_params[item_id * num_params_ + 10] = log(mult_coeffs[0]);
+//         if (do_pow[1])
+//           top_params[item_id * num_params_ + 11] = log(pow_coeffs[1]);
+//         if (do_add[1])
+//           top_params[item_id * num_params_ + 12] = add_coeffs[1];
+//         if (do_mult[1])
+//           top_params[item_id * num_params_ + 13] = log(mult_coeffs[1]);
+//         if (do_pow[2])
+//           top_params[item_id * num_params_ + 14] = log(pow_coeffs[2]);
+//         if (do_add[2])
+//           top_params[item_id * num_params_ + 15] = add_coeffs[2];
+//         if (do_mult[2])
+//           top_params[item_id * num_params_ + 16] = log(mult_coeffs[2]);
+//         if (do_col_rotate)
+//           top_params[item_id * num_params_ + 17] = col_angle;       
+//       }
     }      
     
     
-//     LOG(INFO) << "item_id " << item_id << " do_translate " << do_translate << " do_rotate " << do_rotate << " do_zoom " << do_zoom;
-//     LOG(INFO) << "angle: " << angle << ", zoom: " << zoom_coeff << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
     // actually apply the transformation
     if (do_spatial_transform) { 
-//       LOG(INFO) << " >>> do spatial transform " << item_id;
       int i00,i01,i10,i11;
       for (x = 0; x < crop_size; x++) {
         for (y = 0; y < crop_size; y++) {
@@ -604,44 +596,39 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       // actually apply the transform
       for (c=0; c<channels; c++) 
         mean_eig[c] = eigvec[3*c] * mean_rgb[0] + eigvec[3*c+1] * mean_rgb[1] + eigvec[3*c+2] * mean_rgb[2];
-      for (c=1; c<channels; c++) {
-//           if (do_pow[c])            
-//             eig[c] = static_cast<float>(sgn(eig[c])) * pow(fabs(eig[c]), pow_coeffs[c]);
-//           if (do_add[c])                 
-//             if (sgn(eig[c]) != sgn(eig[c] + add_coeffs[c]))
-//               eig[c] = 0.;
-//             else
-//                 eig[c] = eig[c] + add_coeffs[c];
-        if (do_mult[c])
-          mean_eig[c] = mean_eig[c] * mean_mult_coeffs[c];
-      }
-      if (do_col_rotate) {
-        Dtype temp1, temp2;
-        temp1 =  cos(col_angle) * mean_eig[1] - sin(col_angle) * mean_eig[2];
-        temp2 =  sin(col_angle) * mean_eig[1] + cos(col_angle) * mean_eig[2]; 
-        mean_eig[1] = temp1;
-        mean_eig[2] = temp2;
-      }  
         
       for (x=0; x<crop_size; x++) {
         for (y=0; y<crop_size; y++) {
+          // subtracting the mean
           for (c=0; c<channels; c++) {
             rgb[c] = top_data[((item_id*channels + c)*crop_size + x)*crop_size + y];
             rgb[c] = rgb[c] - mean_rgb[c];
           }
+          // doing the nomean stuff
           for (c=0; c<channels; c++) {
             eig[c] = eigvec[3*c] * rgb[0] + eigvec[3*c+1] * rgb[1] + eigvec[3*c+2] * rgb[2];
             if ( max_abs_eig[c] > 1e-2 ) {
               eig[c] = eig[c] / max_abs_eig[c]; 
-              if (do_pow[c])            
-                eig[c] = static_cast<float>(sgn(eig[c])) * pow(fabs(eig[c]), pow_coeffs[c]);
-              if (do_add[c])                 
-                if (sgn(eig[c]) != sgn(eig[c] + add_coeffs[c]))
-                  eig[c] = 0.;
-                else
-                   eig[c] = eig[c] + add_coeffs[c];
-              if (do_mult[c])
-                eig[c] = eig[c] * mult_coeffs[c];
+              if (do_pow_nomean[c])            
+                eig[c] = static_cast<float>(sgn(eig[c])) * pow(fabs(eig[c]), pow_coeffs_nomean[c]);
+              if (do_add_nomean[c])                 
+                eig[c] = eig[c] + add_coeffs_nomean[c];
+              if (do_mult_nomean[c])
+                eig[c] = eig[c] * mult_coeffs_nomean[c];
+            }
+          }
+          // re-adding the mean
+          for (c=0; c<channels; c++)
+            eig[c] = eig[c] + mean_eig[c] / max_abs_eig[c];
+          // doing the withmean stuff
+          for (c=0; c<channels; c++) {
+            if ( max_abs_eig[c] > 1e-2 ) {
+              if (do_pow_withmean[c])            
+                eig[c] = static_cast<float>(sgn(eig[c])) * pow(fabs(eig[c]), pow_coeffs_withmean[c]);
+              if (do_add_withmean[c])                 
+                eig[c] = eig[c] + add_coeffs_withmean[c];
+              if (do_mult_withmean[c])
+                eig[c] = eig[c] * mult_coeffs_withmean[c];
             }
           }
           if (do_col_rotate) {
@@ -651,44 +638,27 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
             eig[1] = temp1;
             eig[2] = temp2;
           }
-          for (c=0; c<channels; c++) {
-            if ( max_abs_eig[c] > 1e-2 ) {
-              eig[c] = eig[c] * max_abs_eig[c]; 
-            }
-          }
-          for (c=0; c<channels; c++)
-            eig[c] = eig[c] + mean_eig[c];
-          for (c=0; c<channels; c++) {
-            rgb[c] = eigvec[c] * eig[0] + eigvec[3+c] * eig[1] + eigvec[6+c] * eig[2];
-//             rgb[c] = rgb[c] + mean_rgb[c];
-            if (rgb[c] > aug.max_multiplier()*max_rgb[c])
-              rgb[c] = aug.max_multiplier()*max_rgb[c];
-            if (rgb[c] < aug.max_multiplier()*min_rgb[c])
-              rgb[c] = aug.max_multiplier()*min_rgb[c];
-          }
-//           if (eig[0] < 0)
-//            eig[0] = 0.;
           if ( max_abs_eig[0] > 1e-2 ) {
-            eig[0] = eigvec[0] * rgb[0] + eigvec[1] * rgb[1] + eigvec[2] * rgb[2];
             if (do_lmult_pow)
-              l = pow(fabs(eig[0]/max_abs_eig[0]), lmult_pow_coeff);
+              l = pow(fabs(eig[0]), lmult_pow_coeff);
             else
-              l = fabs(eig[0])/max_abs_eig[0];
-//             if (do_lmult_add) {
-//               l = l + lmult_add_coeff;
-//               if (l < 0.)
-//                 l = 0.;
-//             }
+              l = fabs(eig[0]);
             if (do_lmult_mult)
               l = l * lmult_mult_coeff;
             l = l*max_abs_eig[0];
             if ((do_lmult_pow || do_lmult_add || do_lmult_mult) && fabs(eig[0]) > 1e-2) {
               for (c=channels-1; c>=0; c--) {
-                rgb[c] = rgb[c] / fabs(eig[0]) * l;
+                eig[c] = eig[c] / fabs(eig[0]) * l;
               }
             }
           }
           for (c=0; c<channels; c++) {
+            if ( max_abs_eig[c] > 1e-2 ) {
+              eig[c] = eig[c] * max_abs_eig[c]; 
+            }
+          }                    
+          for (c=0; c<channels; c++) {
+            rgb[c] = eigvec[c] * eig[0] + eigvec[3+c] * eig[1] + eigvec[6+c] * eig[2];
             if (rgb[c] > aug.max_multiplier()*max_rgb[c])
               rgb[c] = aug.max_multiplier()*max_rgb[c];
             if (rgb[c] < aug.max_multiplier()*min_rgb[c])
