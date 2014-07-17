@@ -343,14 +343,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
         dx=0.;
         dy=0.;
         mirror = false;
-      }
-      
-      if (write_augmented.size()) { 
-        if (do_spatial_transform)
-          LOG(INFO) << "Augmenting " << item_id << ". angle: " << angle << ", zoom: " << zoom_coeff << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
-        else
-          LOG(INFO) << "Couldn't find appropriate spatial augmentation parameters";
-      }  
+      } 
       
       if (do_rotate)
         do_rotate = (fabs(angle) >1e-2);
@@ -362,6 +355,14 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
         do_zoom = (fabs(zoom_coeff - 1.) >1e-2);
       
       do_spatial_transform = (do_rotate || do_translate || do_mirror || do_zoom);
+      
+      if (write_augmented.size()) { 
+        if (do_spatial_transform)
+          LOG(INFO) << "Augmenting " << item_id << ". angle: " << angle << ", zoom: " << zoom_coeff << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
+        else
+          LOG(INFO) << "Not augmenting " << item_id << " spatially";
+      } 
+      
       if (output_params_) {
         Dtype* top_params = (*top)[1]->mutable_cpu_data();
         if (do_mirror)
@@ -416,18 +417,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       
       if (aug.has_col_rotate())
         col_angle = caffe_rng_generate<float>(aug.col_rotate());
-            
-      if (write_augmented.size()) {
-        LOG(INFO) << "Augmenting " << item_id << ". lmult_pow: " << lmult_pow_coeff << ", lmult_mult: " << lmult_mult_coeff << ", lmult_add: " << lmult_add_coeff
-        << ", pow_nm[0]: " << pow_coeffs_nomean[0]    << ", mult_nm[0]: " << mult_coeffs_nomean[0]    << ", add_nm[0]: " << add_coeffs_nomean[0]
-        << ", pow_nm[1]: " << pow_coeffs_nomean[1]    << ", mult_nm[1]: " << mult_coeffs_nomean[1]    << ", add_nm[1]: " << add_coeffs_nomean[1]
-        << ", pow_nm[2]: " << pow_coeffs_nomean[2]    << ", mult_nm[2]: " << mult_coeffs_nomean[2]    << ", add_nm[2]: " << add_coeffs_nomean[2]
-        << ", pow_wm[0]: " << pow_coeffs_withmean[0]    << ", mult_wm[0]: " << mult_coeffs_withmean[0]    << ", add_wm[0]: " << add_coeffs_withmean[0]
-        << ", pow_wm[1]: " << pow_coeffs_withmean[1]    << ", mult_wm[1]: " << mult_coeffs_withmean[1]    << ", add_wm[1]: " << add_coeffs_withmean[1]
-        << ", pow_wm[2]: " << pow_coeffs_withmean[2]    << ", mult_wm[2]: " << mult_coeffs_withmean[2]    << ", add_wm[2]: " << add_coeffs_withmean[2]
-        << ", col_angle: " << col_angle;
-      }
-      
+                  
       do_chromatic_transform = false;
     
       for (c=0; c<3; c++) {
@@ -449,6 +439,20 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       if (do_col_rotate)
         do_col_rotate = (fabs(col_angle) > 1e-2);
       do_chromatic_transform = (do_chromatic_transform || do_lmult_pow || do_lmult_add || do_lmult_mult || do_col_rotate);
+      
+      if (write_augmented.size()) {
+        if (do_chromatic_transform)
+          LOG(INFO) << "Augmenting " << item_id << ". lmult_pow: " << lmult_pow_coeff << ", lmult_mult: " << lmult_mult_coeff << ", lmult_add: " << lmult_add_coeff
+          << ", pow_nm[0]: " << pow_coeffs_nomean[0]    << ", mult_nm[0]: " << mult_coeffs_nomean[0]    << ", add_nm[0]: " << add_coeffs_nomean[0]
+          << ", pow_nm[1]: " << pow_coeffs_nomean[1]    << ", mult_nm[1]: " << mult_coeffs_nomean[1]    << ", add_nm[1]: " << add_coeffs_nomean[1]
+          << ", pow_nm[2]: " << pow_coeffs_nomean[2]    << ", mult_nm[2]: " << mult_coeffs_nomean[2]    << ", add_nm[2]: " << add_coeffs_nomean[2]
+          << ", pow_wm[0]: " << pow_coeffs_withmean[0]    << ", mult_wm[0]: " << mult_coeffs_withmean[0]    << ", add_wm[0]: " << add_coeffs_withmean[0]
+          << ", pow_wm[1]: " << pow_coeffs_withmean[1]    << ", mult_wm[1]: " << mult_coeffs_withmean[1]    << ", add_wm[1]: " << add_coeffs_withmean[1]
+          << ", pow_wm[2]: " << pow_coeffs_withmean[2]    << ", mult_wm[2]: " << mult_coeffs_withmean[2]    << ", add_wm[2]: " << add_coeffs_withmean[2]
+          << ", col_angle: " << col_angle;
+        else
+          LOG(INFO) << "Not augmenting " << item_id << " chromativally";
+      }
       
       if (output_params_) {
         Dtype* top_params = (*top)[1]->mutable_cpu_data();
@@ -560,7 +564,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
     
     if (do_chromatic_transform) {
 //       LOG(INFO) << " >>> do chromatic transform " << item_id;
-      Dtype l;
+      Dtype s, s1, l, l1, max_l;
       Dtype rgb [3];
       Dtype eig [3];
       Dtype mean_eig [3];
@@ -588,6 +592,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
           }
         }
       }
+      max_l = sqrt(max_abs_eig[0]*max_abs_eig[0] + max_abs_eig[1]*max_abs_eig[1] + max_abs_eig[2]*max_abs_eig[2]);;
         
       // actually apply the transform
       for (c=0; c<channels; c++) 
@@ -617,14 +622,24 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
           for (c=0; c<channels; c++)
             eig[c] = eig[c] + mean_eig[c] / max_abs_eig[c];
           // doing the withmean stuff
-          for (c=0; c<channels; c++) {
-            if ( max_abs_eig[c] > 1e-2 ) {
-              if (do_pow_withmean[c])            
-                eig[c] = static_cast<float>(sgn(eig[c])) * pow(fabs(eig[c]), pow_coeffs_withmean[c]);
-              if (do_add_withmean[c])                 
-                eig[c] = eig[c] + add_coeffs_withmean[c];
-              if (do_mult_withmean[c])
-                eig[c] = eig[c] * mult_coeffs_withmean[c];
+          if ( max_abs_eig[c] > 1e-2 && (do_pow_withmean[0] || do_add_withmean[0] || do_mult_withmean[0])) {
+            if (do_pow_withmean[0])            
+              eig[0] = static_cast<float>(sgn(eig[0])) * pow(fabs(eig[0]), pow_coeffs_withmean[0]);
+            if (do_add_withmean[0])                 
+              eig[0] = eig[0] + add_coeffs_withmean[0];
+            if (do_mult_withmean[0])
+              eig[0] = eig[0] * mult_coeffs_withmean[0];
+          }
+          if (do_pow_withmean[1] || do_add_withmean[1] || do_mult_withmean[1]) {
+            s = sqrt(eig[1]*eig[1] + eig[2]*eig[2]);
+            s1 = s;
+            if (s > 1e-2) {
+              if (do_pow_withmean[1])            
+                s1 = pow(s1, pow_coeffs_withmean[1]);
+              if (do_add_withmean[1])                 
+                s1 = fmax(s1 + add_coeffs_withmean[1], 0.);
+              if (do_mult_withmean[1])
+                s1 = s1 * mult_coeffs_withmean[1];              
             }
           }
           if (do_col_rotate) {
@@ -634,25 +649,35 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
             eig[1] = temp1;
             eig[2] = temp2;
           }
-          if ( max_abs_eig[0] > 1e-2 ) {
-            if (do_lmult_pow)
-              l = pow(fabs(eig[0]), lmult_pow_coeff);
-            else
-              l = fabs(eig[0]);
-            if (do_lmult_mult)
-              l = l * lmult_mult_coeff;
-            l = l*max_abs_eig[0];
-            if ((do_lmult_pow || do_lmult_add || do_lmult_mult) && fabs(eig[0]) > 1e-2) {
-              for (c=channels-1; c>=0; c--) {
-                eig[c] = eig[c] / fabs(eig[0]) * l;
-              }
-            }
-          }
           for (c=0; c<channels; c++) {
             if ( max_abs_eig[c] > 1e-2 ) {
               eig[c] = eig[c] * max_abs_eig[c]; 
             }
-          }                    
+          }
+          if (max_l > 1e-2 && (do_lmult_pow || do_lmult_add || do_lmult_mult) || (do_pow_withmean[1] || do_add_withmean[1] || do_mult_withmean[1])) {
+            l1 = sqrt(eig[0]*eig[0] + eig[1]*eig[1] + eig[2]*eig[2]);
+            l1 = l1 / max_l;
+          }
+          if (s > 1e-2 && (do_pow_withmean[1] || do_add_withmean[1] || do_mult_withmean[1])) {
+            eig[1] = eig[1] / s * s1;
+            eig[2] = eig[2] / s * s1;
+          }
+          if ( max_l > 1e-2 && (do_lmult_pow || do_lmult_add || do_lmult_mult) || (do_pow_withmean[1] || do_add_withmean[1] || do_mult_withmean[1])) {            
+            l = sqrt(eig[0]*eig[0] + eig[1]*eig[1] + eig[2]*eig[2]);
+            if (do_lmult_pow)
+              l1 = pow(l1, lmult_pow_coeff);
+            if (do_lmult_add)
+              l1 = fmax(l1 + lmult_add_coeff, 0.);
+            if (do_lmult_mult)
+              l1 = l1 * lmult_mult_coeff;
+            l1 = l1 * max_l;
+            if (l > 1e-2)
+              for (c=0; c<channels; c++) {
+                eig[c] = eig[c] / l * l1;
+                if (eig[c] > max_abs_eig[c])
+                  eig[c] = max_abs_eig[c];
+              }
+          }                             
           for (c=0; c<channels; c++) {
             rgb[c] = eigvec[c] * eig[0] + eigvec[3+c] * eig[1] + eigvec[6+c] * eig[2];
             if (rgb[c] > aug.max_multiplier()*max_rgb[c])
