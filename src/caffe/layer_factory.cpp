@@ -22,16 +22,20 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
   const string& name = param.name();
   const LayerParameter_LayerType& type = param.type();
   switch (type) {
+  case LayerParameter_LayerType_ACCUM:
+    return new AccumLayer<Dtype>(param); 
   case LayerParameter_LayerType_ACCURACY:
     return new AccuracyLayer<Dtype>(param);
   case LayerParameter_LayerType_ARGMAX:
     return new ArgMaxLayer<Dtype>(param);
   case LayerParameter_LayerType_BNLL:
-    return new BNLLLayer<Dtype>(param);
+    return new BNLLLayer<Dtype>(param); 
   case LayerParameter_LayerType_CONCAT:
     return new ConcatLayer<Dtype>(param);
   case LayerParameter_LayerType_CONVOLUTION:
     return new ConvolutionLayer<Dtype>(param);
+  case LayerParameter_LayerType_CONVOLUTION_ORTH:
+    return new ConvolutionOrthLayer<Dtype>(param);  
   case LayerParameter_LayerType_DECONVOLUTION:
     return new DeConvolutionLayer<Dtype>(param);
   case LayerParameter_LayerType_DATA:
@@ -48,10 +52,14 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new EuclideanLossLayer<Dtype>(param);
   case LayerParameter_LayerType_ELTWISE:
     return new EltwiseLayer<Dtype>(param);
+  case LayerParameter_LayerType_ENTROPY_LOSS:
+    return new EntropyLossLayer<Dtype>(param);   
   case LayerParameter_LayerType_FLATTEN:
     return new FlattenLayer<Dtype>(param);
   case LayerParameter_LayerType_HDF5_DATA:
     return new HDF5DataLayer<Dtype>(param);
+  case LayerParameter_LayerType_HDF5_DATA_COUPLES:
+    return new HDF5DataCouplesLayer<Dtype>(param);  
   case LayerParameter_LayerType_HDF5_OUTPUT:
     return new HDF5OutputLayer<Dtype>(param);
   case LayerParameter_LayerType_HINGE_LOSS:
@@ -64,6 +72,10 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new InfogainLossLayer<Dtype>(param);
   case LayerParameter_LayerType_INNER_PRODUCT:
     return new InnerProductLayer<Dtype>(param);
+  case LayerParameter_LayerType_INNER_PRODUCT_ORTH:
+    return new InnerProductOrthLayer<Dtype>(param);
+  case LayerParameter_LayerType_LABEL_TO_ONEHOT:
+    return new LabelToOnehotLayer<Dtype>(param);  
   case LayerParameter_LayerType_LRN:
     return new LRNLayer<Dtype>(param);
   case LayerParameter_LayerType_MEMORY_DATA:

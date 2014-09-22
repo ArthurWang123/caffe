@@ -38,11 +38,17 @@ void InnerProductLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   // Gradient with respect to weight
   caffe_gpu_gemm<Dtype>(CblasTrans, CblasNoTrans, N_, K_, M_, (Dtype)1.,
       top_diff, bottom_data, (Dtype)0., this->blobs_[0]->mutable_gpu_diff());
+//   LOG(INFO) << "Inner product layer with top size " << top[0]->num() <<"x" << top[0]->channels() << "x" << top[0]->height() << "x" << top[0]->width();
+//   LOG(INFO) << "  Norm of top diff is " << caffe_gpu_norm2(top[0]->count(), top_diff);
+//   LOG(INFO) << "  Norm of weight diff is " << caffe_gpu_norm2(this->blobs_[0]->count(), this->blobs_[0]->gpu_diff());
+//   LOG(INFO) << "  Norm of weight data is " << caffe_gpu_norm2(this->blobs_[0]->count(), this->blobs_[0]->gpu_data());
   if (bias_term_) {
     // Gradient with respect to bias
     caffe_gpu_gemv<Dtype>(CblasTrans, M_, N_, (Dtype)1., top_diff,
         reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
         (Dtype)0., this->blobs_[1]->mutable_gpu_diff());
+//     LOG(INFO) << "  Norm of bias diff is " << caffe_gpu_norm2(this->blobs_[1]->count(), this->blobs_[1]->gpu_diff());
+//     LOG(INFO) << "  Norm of bias data is " << caffe_gpu_norm2(this->blobs_[1]->count(), this->blobs_[1]->gpu_data());
   }
   if (propagate_down) {
     // Gradient with respect to bottom data

@@ -126,6 +126,33 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
   for (size_t layer_id = 0; layer_id < layer_names_.size(); ++layer_id) {
     layer_names_index_[layer_names_[layer_id]] = layer_id;
   }
+  
+  // Share weights
+  for (size_t layer_id = 0; layer_id < layer_names_.size(); ++layer_id) {
+    shared_ptr<Layer<Dtype> > curr_layer = layers_[layer_id];
+    for (int i=0; i < curr_layer->layer_param().share_weights_with_size(); i++) {
+      
+      std::string other_layer_name = layers_[layer_id]->layer_param().share_weights_with(i);
+      CHECK(layer_names_index_.count(other_layer_name)) << "Layer " << layer_names_[layer_id] <<
+          " cannot share weights with layer " << other_layer_name << ": layer " << 
+          other_layer_name << " not found";
+          
+      shared_ptr<Layer<Dtype> > other_layer = layers_[layer_names_index_[other_layer_name]];
+      CHECK_EQ(curr_layer->blobs().size(), other_layer->blobs().size());
+      
+      LOG(INFO) << "Layer " << layer_names_[layer_id] << " shares weights with layer " << other_layer_name;
+      for (int j=0; j < curr_layer->blobs().size(); j++) {
+        shared_ptr<Blob<Dtype> > curr_blob = curr_layer->blobs()[j];
+        shared_ptr<Blob<Dtype> > other_blob = other_layer->blobs()[j];
+        CHECK_EQ(curr_blob->num(), other_blob->num());
+        CHECK_EQ(curr_blob->channels(), other_blob->channels());
+        CHECK_EQ(curr_blob->height(), other_blob->height());
+        CHECK_EQ(curr_blob->width(), other_blob->width());
+        curr_blob->ShareData(*other_blob);
+      }
+    }      
+  } 
+  
   GetLearningRateAndWeightDecay();
   LOG(INFO) << "Network initialization done.";
   LOG(INFO) << "Memory required for data: " << memory_used_ * sizeof(Dtype);
@@ -249,7 +276,7 @@ const vector<Blob<Dtype>*>& Net<Dtype>::ForwardPrefilled(Dtype* loss) {
     *loss = Dtype(0.);
   }
   for (int i = 0; i < layers_.size(); ++i) {
-    // LOG(ERROR) << "Forwarding " << layer_names_[i];
+//     LOG(ERROR) << "Forwarding " << layer_names_[i];
     Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], &top_vecs_[i]);
     if (loss != NULL) {
       *loss += layer_loss;
@@ -316,7 +343,7 @@ void Net<Dtype>::ShareTrainedLayersWith(Net* other) {
       DLOG(INFO) << "Ignoring source layer " << source_layer_name;
       continue;
     }
-    DLOG(INFO) << "Copying source layer " << source_layer_name;
+    DLOG(INFO) << "Copying source layer " << source_layer_name << " to " << layer_names_[target_layer_id];
     vector<shared_ptr<Blob<Dtype> > >& target_blobs =
         layers_[target_layer_id]->blobs();
     CHECK_EQ(target_blobs.size(), source_layer->blobs().size())

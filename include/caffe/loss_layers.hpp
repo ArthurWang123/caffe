@@ -165,6 +165,37 @@ class MultinomialLogisticLossLayer : public LossLayer<Dtype> {
       const bool propagate_down, vector<Blob<Dtype>*>* bottom);
 };
 
+template <typename Dtype>
+class EntropyLossLayer : public LossLayer<Dtype> {
+ public:
+  explicit EntropyLossLayer(const LayerParameter& param)
+      : LossLayer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_ENTROPY_LOSS;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 0; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+     const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  
+  Blob<Dtype> log_blob_;
+  Dtype coeff_;
+  Dtype min_val_;
+};
+
+
+
 /* AccuracyLayer
   Note: not an actual loss layer! Does not implement backwards step.
   Computes the accuracy and logprob of a with respect to b.
@@ -189,6 +220,8 @@ class AccuracyLayer : public Layer<Dtype> {
     NOT_IMPLEMENTED;
   }
 };
+
+
 
 /* Also see
 - SoftmaxWithLossLayer in vision_layers.hpp

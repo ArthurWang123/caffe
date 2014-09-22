@@ -17,6 +17,41 @@
 
 namespace caffe {
 
+// AccumLayer: accumulates (averages) the values it gets over the 0th dimension, i.e. sample number  
+  
+template <typename Dtype>
+class AccumLayer : public Layer<Dtype> {
+ public:
+  explicit AccumLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_ACCUM;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+     const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  
+  Blob<Dtype> avg_blob_;
+  Blob<Dtype> ones_;
+  
+  int num_;
+  int dim_;
+  Dtype alpha_;
+  Dtype discount_coeff_;
+};  
+
 /* ArgmaxLayer
   Compute the index of the max value across all (channels x height x width).
   [In the future, can take specific dimension.]
@@ -45,7 +80,7 @@ class ArgMaxLayer : public Layer<Dtype> {
       vector<Blob<Dtype>*>* top);
   virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
       const bool propagate_down, vector<Blob<Dtype>*>* bottom) {
-    NOT_IMPLEMENTED;
+//     NOT_IMPLEMENTED;
   }
   bool out_max_val_;
 };
@@ -101,6 +136,7 @@ class ConvolutionLayer : public Layer<Dtype> {
     return LayerParameter_LayerType_CONVOLUTION;
   }
   virtual void normalize_weights(Dtype mnorm);
+  virtual void normalize_weights(Dtype min_norm, Dtype max_norm, Dtype target_norm);
   virtual inline int ExactNumBottomBlobs() const { return 1; }
   virtual inline int ExactNumTopBlobs() const { return 1; }
 
@@ -130,6 +166,66 @@ class ConvolutionLayer : public Layer<Dtype> {
   int K_;
   int N_;
 };
+
+/* ConvolutionOrthLayer
+*/
+template <typename Dtype>
+class ConvolutionOrthLayer : public Layer<Dtype> {
+ public:
+  explicit ConvolutionOrthLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_CONVOLUTION_ORTH;
+  }
+  virtual void normalize_weights(Dtype mnorm);
+  virtual void normalize_weights(Dtype min_norm, Dtype max_norm, Dtype target_norm);
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int kernel_size_;
+  int stride_;
+  int num_;
+  int channels_;
+  int pad_;
+  int height_;
+  int width_;
+  int num_output_;
+  int group_;
+  Blob<Dtype> col_buffer_;
+  shared_ptr<SyncedMemory> bias_multiplier_;
+  bool bias_term_;
+  int M_;
+  int K_;
+  int N_;
+  
+  int iter_;
+  int orth_step_;
+  OrthParameter_OrthMethod orth_method_;
+  int max_num_iter_;
+  Dtype eps_;
+  Dtype esmaeili_coeff_;
+  Dtype min_norm_;
+  Dtype max_norm_;
+  Dtype target_norm_;
+  Blob<Dtype> gram_;
+  Blob<Dtype> kk_;
+  Blob<Dtype> ak_;
+  Blob<Dtype> id_;
+};
+
 
 /* DeConvolutionLayer
 */
@@ -284,6 +380,7 @@ class InnerProductLayer : public Layer<Dtype> {
     return LayerParameter_LayerType_INNER_PRODUCT;
   }
   virtual void normalize_weights(Dtype mnorm);
+  virtual void normalize_weights(Dtype min_norm, Dtype max_norm, Dtype target_norm);
   virtual inline int ExactNumBottomBlobs() const { return 1; }
   virtual inline int ExactNumTopBlobs() const { return 1; }
 
@@ -362,6 +459,32 @@ template <typename Dtype> class PoolingLayer;
 template <typename Dtype> class SubspacePoolingLayer;
 template <typename Dtype> class UnPoolingLayer;
 template <typename Dtype> class SplitLayer;
+
+template <typename Dtype>
+class LabelToOnehotLayer : public Layer<Dtype> {
+ public:
+  explicit LabelToOnehotLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_LABEL_TO_ONEHOT;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+     const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+
+};
 
 /* LRNLayer
   Local Response Normalization

@@ -221,7 +221,7 @@ LIBRARY_DIRS += $(BLAS_LIB)
 COMMON_FLAGS += $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
 CXXFLAGS += -pthread -fPIC -fopenmp $(COMMON_FLAGS)
 NVCCFLAGS := -ccbin=$(CXX) -Xcompiler -fPIC $(COMMON_FLAGS)
-LDFLAGS += $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
+LDFLAGS += -fopenmp $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
 		$(foreach library,$(LIBRARIES),-l$(library))
 PYTHON_LDFLAGS := $(LDFLAGS) $(foreach library,$(PYTHON_LIBRARIES),-l$(library))
 

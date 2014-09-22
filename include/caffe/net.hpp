@@ -102,7 +102,7 @@ class Net {
   bool has_layer(const string& layer_name);
   const shared_ptr<Layer<Dtype> > layer_by_name(const string& layer_name);
   // return losses
-  inline vector<float>& losses() {return losses_; }
+  inline vector<std::pair<int, float> >& losses() {return losses_; }
 
  protected:
   // Helpers for Init.
@@ -153,7 +153,7 @@ class Net {
   // The bytes of memory used by this net
   size_t memory_used_;
   // Losses of all layers
-  vector<float> losses_;
+  vector<std::pair<int,float> > losses_;
   DISABLE_COPY_AND_ASSIGN(Net);
 };
 

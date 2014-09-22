@@ -11,7 +11,7 @@
 namespace caffe {
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
+void ConvolutionOrthLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top) {
   Layer<Dtype>::SetUp(bottom, top);
   kernel_size_ = this->layer_param_.convolution_param().kernel_size();
@@ -73,19 +73,104 @@ void ConvolutionLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
         bias_multiplier_data[i] = 1.;
     }
   }
+  // Setting up variables needed for orthogonalization 
+  LOG(INFO) << "Convolutional orth layer: M_=" << M_ << ", K_=" << K_;
+  iter_ = 0;
+  orth_step_ = this->layer_param_.orth_param().step();
+  orth_method_ = this->layer_param_.orth_param().orth_method();
+  max_num_iter_ = this->layer_param_.orth_param().max_num_iter();
+  eps_ = this->layer_param_.orth_param().eps();
+  esmaeili_coeff_ = this->layer_param_.orth_param().esmaeili_coeff();
+  min_norm_ = this->layer_param_.orth_param().min_norm();
+  max_norm_ = this->layer_param_.orth_param().max_norm();
+  target_norm_ = this->layer_param_.orth_param().target_norm();
+  this->gram_.Reshape(1, 1, M_, M_);
+  this->kk_.Reshape(1, 1, M_, M_);
+  this->id_.Reshape(1, 1, M_, M_);
+  this->ak_.Reshape(1, 1, M_, K_);
+  Dtype* id_data = this->id_.mutable_cpu_data();
+  for (int i=0; i < M_; i++) {
+    for (int j=0; j < M_; j++) {
+      if (i==j)
+        id_data[i * M_ + j] = 1.;
+      else
+        id_data[i * M_ + j] = 0.;
+    }
+  }
 }
 
 
 template <typename Dtype>
-Dtype ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+Dtype ConvolutionOrthLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top) {
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = (*top)[0]->mutable_cpu_data();
   Dtype* col_data = col_buffer_.mutable_cpu_data();
-  const Dtype* weight = this->blobs_[0]->cpu_data();
+  Dtype* weight = this->blobs_[0]->mutable_cpu_data();
   int weight_offset = M_ * K_;
   int col_offset = K_ * N_;
   int top_offset = M_ * N_;
+  
+  // Orthogonalization  
+  if (Caffe::phase() == Caffe::TRAIN && orth_step_ > 0) {
+    if (!(iter_ % orth_step_)) {
+//       LOG(INFO) << "Orthogonalizing, iter=" << iter_;
+      switch (orth_method_) {
+        case OrthParameter_OrthMethod_ESMAEILI:
+        { 
+          Dtype* gram = this->gram_.mutable_cpu_data();
+          Dtype* kk = this->kk_.mutable_cpu_data();
+          Dtype* ak = this->ak_.mutable_cpu_data();
+          const Dtype* id = this->id_.cpu_data();
+          Dtype error;
+          for (int g = 0; g < group_; ++g) {
+//           LOG(INFO) << "ESMAEILI";                 
+            for (int ni=0; ni<max_num_iter_; ni++) {
+              caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans, M_, M_, K_, (Dtype)1.,
+                  weight, weight, (Dtype)0., gram);
+              caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, M_, M_, M_, esmaeili_coeff_,
+                  gram, gram, (Dtype)0., kk);
+              caffe_axpy<Dtype>(M_*M_, -(1. + esmaeili_coeff_), gram, kk);
+              caffe_axpy<Dtype>(M_*M_, 2., id, kk);            
+              caffe_axpy<Dtype>(M_*M_, -1., id, gram);
+              error = caffe_cpu_norm2(M_*M_, gram);
+  //             LOG(INFO) << "Iter " << ni+1 << "  ||Gram - id||=" << error;
+//               if (error > 1e5)
+              if (error < eps_)
+                ni = max_num_iter_;
+              else {
+                LOG(INFO) << "Iter " << iter_ << "." << ni <<"  ||Gram - id||=" << error;
+                caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, M_, K_, M_, (Dtype)1.,
+                  kk, weight, (Dtype)0., ak);
+                caffe_copy(M_*K_, ak, weight);
+              }
+            }
+            weight += weight_offset;
+          }
+          
+          break;
+        }
+        case OrthParameter_OrthMethod_NORM:
+        {
+          normalize_weights(min_norm_, max_norm_, target_norm_);
+          break;
+        }
+        case OrthParameter_OrthMethod_NONE:
+//           LOG(INFO) << "NONE";
+          break;
+        default:
+          LOG(FATAL) << "Unknown orthogonalization method";
+          break;  
+      }
+    }      
+    iter_++;
+  }
+  
+  // actually performing forward pass
+  
+  // reset weight pointer
+  weight = this->blobs_[0]->mutable_cpu_data();
+  
   for (int n = 0; n < num_; ++n) {
     // First, im2col
     im2col_cpu(bottom_data + bottom[0]->offset(n), channels_, height_,
@@ -104,11 +189,12 @@ Dtype ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           (Dtype)1., top_data + (*top)[0]->offset(n));
     }
   }
+  
   return Dtype(0.);
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
+void ConvolutionOrthLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const bool propagate_down, vector<Blob<Dtype>*>* bottom) {
   const Dtype* top_diff = top[0]->cpu_diff();
   const Dtype* weight = this->blobs_[0]->cpu_data();
@@ -163,7 +249,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::normalize_weights(Dtype mnorm) {
+void ConvolutionOrthLayer<Dtype>::normalize_weights(Dtype mnorm) {
   Dtype *weight = 0;
   int M = this->blobs_[0]->channels() * this->blobs_[0]->width() * this->blobs_[0]->height();
   int N = this->blobs_[0]->num();
@@ -202,7 +288,7 @@ void ConvolutionLayer<Dtype>::normalize_weights(Dtype mnorm) {
 }
 
 template <typename Dtype>
-void ConvolutionLayer<Dtype>::normalize_weights(Dtype min_norm, Dtype max_norm, Dtype target_norm) {
+void ConvolutionOrthLayer<Dtype>::normalize_weights(Dtype min_norm, Dtype max_norm, Dtype target_norm) {
   Dtype *weight = 0;
   int M = this->blobs_[0]->channels() * this->blobs_[0]->width() * this->blobs_[0]->height();
   int N = this->blobs_[0]->num();
@@ -240,6 +326,6 @@ void ConvolutionLayer<Dtype>::normalize_weights(Dtype min_norm, Dtype max_norm, 
   }
 }
 
-INSTANTIATE_CLASS(ConvolutionLayer);
+INSTANTIATE_CLASS(ConvolutionOrthLayer);
 
 }  // namespace caffe

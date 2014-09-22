@@ -96,6 +96,40 @@ class HDF5DataLayer : public Layer<Dtype> {
   bool data_in_memory_;
 };
 
+template <typename Dtype>
+class HDF5DataCouplesLayer : public Layer<Dtype> {
+ public:
+  explicit HDF5DataCouplesLayer(const LayerParameter& param)
+      : Layer<Dtype>(param), data_in_memory_(true) {}
+  virtual ~HDF5DataCouplesLayer();
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_HDF5_DATA_COUPLES;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 0; }
+  virtual inline int ExactNumTopBlobs() const { return 3; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void LoadHDF5FileData(const char* filename, Blob<Dtype>* data_blob, Blob<Dtype>* label_blob);
+ 
+  Blob<Dtype>* data_blob_;
+  Blob<Dtype>* label_blob_;
+  bool data_in_memory_;
+  Dtype match_ratio_;
+  int in_data_num_;
+  Dtype scale_;
+};
+
 // TODO: DataLayer, ImageDataLayer, and WindowDataLayer all have the
 // same basic structure and a lot of duplicated code.
 

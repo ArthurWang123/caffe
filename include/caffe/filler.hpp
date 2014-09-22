@@ -47,6 +47,36 @@ class ConstantFiller : public Filler<Dtype> {
 };
 
 template <typename Dtype>
+class DiagFiller : public Filler<Dtype> {
+ public:
+  explicit DiagFiller(const FillerParameter& param)
+      : Filler<Dtype>(param) {}
+  virtual void Fill(Blob<Dtype>* blob) {
+    Dtype* data = blob->mutable_cpu_data();
+    const int count = blob->count();
+    const int num = blob->num();
+    const int channels = blob->channels();
+    const int height = blob->height();
+    const int width = blob->width();
+    const Dtype max_value = this->filler_param_.max();
+    const Dtype min_value = this->filler_param_.min();
+    CHECK(count);
+    CHECK(num == 1);
+    CHECK(channels == 1);
+    for (int i = 0; i < height; ++i) {
+      for (int j = 0; j < width; ++j) {
+        if (i == j)
+          data[width * i + j] = max_value;
+        else
+          data[width * i + j] = min_value;
+      }
+    }
+    CHECK_EQ(this->filler_param_.sparse(), -1)
+         << "Sparsity not supported by this Filler.";
+  }
+};
+
+template <typename Dtype>
 class UniformFiller : public Filler<Dtype> {
  public:
   explicit UniformFiller(const FillerParameter& param)
@@ -162,6 +192,8 @@ Filler<Dtype>* GetFiller(const FillerParameter& param) {
     return new UniformFiller<Dtype>(param);
   } else if (type == "xavier") {
     return new XavierFiller<Dtype>(param);
+  } else if (type == "diag") {
+    return new DiagFiller<Dtype>(param);
   } else {
     CHECK(false) << "Unknown filler name: " << param.type();
   }

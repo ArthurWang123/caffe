@@ -116,6 +116,7 @@ message SolverParameter {
   optional int32 snapshot_on_exit = 25 [default = 0];
   optional string external_term_criterion_cmd = 26;
   optional int32 external_term_criterion_num_iter = 27;
+  optional string load_weights_from = 29;
 }
 
 // A message that stores the solver snapshots
@@ -228,6 +229,11 @@ message LayerParameter {
   optional WindowDataParameter window_data_param = 20;
   optional ThresholdParameter threshold_param = 25;
   optional HingeLossParameter hinge_loss_param = 29;
+  optional OrthParameter orth_param = 33;
+  optional CouplesParameter couples_param = 34;
+  optional AccumParameter accum_param = 35;
+  
+  repeated string share_weights_with = 36;
   
   
 
@@ -235,6 +241,11 @@ message LayerParameter {
   // This should never be used by any code except to upgrade to the new
   // LayerParameter specification.
   optional V0LayerParameter layer = 1;
+}
+
+message AccumParameter {
+  optional float discount_coeff = 1 [default = 1.];
+  optional float init_alpha = 2 [default = 0.];
 }
 
 // Message that stores parameters used by ArgMaxLayer
@@ -289,6 +300,11 @@ message ConvolutionParameter {
   optional uint32 stride = 6 [default = 1]; // The stride
   optional FillerParameter weight_filler = 7; // The filler for the weight
   optional FillerParameter bias_filler = 8; // The filler for the bias
+}
+
+message CouplesParameter {
+  optional float match_ratio = 1 [default = 0.5];
+  optional float scale = 2 [default = 1.];
 }
 
 // Message that stores parameters used by DeConvolutionLayer
