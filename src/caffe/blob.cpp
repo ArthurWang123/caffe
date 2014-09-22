@@ -201,6 +201,25 @@ void Blob<Dtype>::FromProto(const BlobProto& proto) {
 }
 
 template <typename Dtype>
+void Blob<Dtype>::FromProto_noReshape(const BlobProto& proto) {
+  CHECK_EQ(num_, proto.num());
+  CHECK_EQ(channels_, proto.channels());
+  CHECK_EQ(height_, proto.height());
+  CHECK_EQ(width_, proto.width());
+  // copy data
+  Dtype* data_vec = mutable_cpu_data();
+  for (int i = 0; i < count_; ++i) {
+    data_vec[i] = proto.data(i);
+  }
+  if (proto.diff_size() > 0) {
+    Dtype* diff_vec = mutable_cpu_diff();
+    for (int i = 0; i < count_; ++i) {
+      diff_vec[i] = proto.diff(i);
+    }
+  }
+}
+
+template <typename Dtype>
 void Blob<Dtype>::ToProto(BlobProto* proto, bool write_diff) const {
   proto->set_num(num_);
   proto->set_channels(channels_);

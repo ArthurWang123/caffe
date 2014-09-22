@@ -242,7 +242,7 @@ template<typename Dtype>
 void caffe_gpu_sign(const int n, const Dtype* x, Dtype* y);
 
 // This returns a nonzero value if the input has its sign bit set.
-// The name sngbit is meant to avoid conflicts with std::signbit in the macro
+// The name sgnbit is meant to avoid conflicts with std::signbit in the macro
 template<typename Dtype>
 void caffe_cpu_sgnbit(const int n, const Dtype* x, Dtype* y);
 

@@ -253,8 +253,8 @@ const vector<Blob<Dtype>*>& Net<Dtype>::ForwardPrefilled(Dtype* loss) {
     Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], &top_vecs_[i]);
     if (loss != NULL) {
       *loss += layer_loss;
-      if (layer_loss > 0)
-        losses_.push_back(layer_loss);
+      if (fabs(layer_loss) > 0)
+        losses_.push_back(std::make_pair(i, layer_loss));
     }
   }
   return net_output_blobs_;
@@ -357,7 +357,7 @@ void Net<Dtype>::CopyTrainedLayersFrom(const NetParameter& param) {
       CHECK_EQ(target_blobs[j]->channels(), source_layer.blobs(j).channels());
       CHECK_EQ(target_blobs[j]->height(), source_layer.blobs(j).height());
       CHECK_EQ(target_blobs[j]->width(), source_layer.blobs(j).width());
-      target_blobs[j]->FromProto(source_layer.blobs(j));
+      target_blobs[j]->FromProto_noReshape(source_layer.blobs(j));
     }
   }
 }

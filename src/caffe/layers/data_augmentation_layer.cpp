@@ -203,14 +203,14 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
   for (int item_id = 0; item_id < num; ++item_id) {
     
     int x, y, c, top_idx, bottom_idx, h_off, w_off;
-    float x1, y1, x2, y2;
+    Dtype x1, y1, x2, y2, squeeze_coeff;
     
     bool do_spatial_transform, do_chromatic_transform;
     
     bool do_rotate = aug.has_rotate();
     bool do_translate = aug.has_translate();
     bool do_mirror = aug.has_mirror();
-    bool do_zoom = aug.has_zoom();
+    bool do_zoom = aug.has_zoom() || aug.has_squeeze();
     
     bool do_pow_nomean [3] = {false, false, false};
     bool do_mult_nomean [3] = {false, false, false};
@@ -224,7 +224,8 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
     bool do_col_rotate = aug.has_col_rotate();
     
     Dtype angle;
-    Dtype zoom_coeff;
+    Dtype zoom_x_coeff;
+    Dtype zoom_y_coeff;
     Dtype dx;
     Dtype dy;
     bool mirror;  
@@ -258,7 +259,8 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
                                 aug.has_col_pow()   || aug.has_col_mult()   || aug.has_col_add()   ||
                                 aug.has_ladd_pow()  || aug.has_ladd_mult()  || aug.has_ladd_add()  || do_col_rotate);
       angle = 0.;
-      zoom_coeff = 1.;
+      zoom_x_coeff = 1.;
+      zoom_y_coeff = 1.;
       dx = 0.;
       dy = 0.;
       mirror = false;  
@@ -294,8 +296,15 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
         good_params = 0;
         if (aug.has_rotate())
           angle = caffe_rng_generate<float>(aug.rotate());
-        if (aug.has_zoom())
-          zoom_coeff = caffe_rng_generate<float>(aug.zoom());
+        if (aug.has_zoom()) {
+          zoom_x_coeff = caffe_rng_generate<float>(aug.zoom());
+          zoom_y_coeff = zoom_x_coeff;
+        }
+        if (aug.has_squeeze()) {
+          squeeze_coeff = caffe_rng_generate<float>(aug.squeeze());
+          zoom_x_coeff = zoom_x_coeff * squeeze_coeff;
+          zoom_y_coeff = zoom_y_coeff / squeeze_coeff;
+        }
         if (aug.has_translate()) {
           dx = caffe_rng_generate<float>(aug.translate());
           dy = caffe_rng_generate<float>(aug.translate());
@@ -323,8 +332,8 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
             x2 = x2 + dx * static_cast<Dtype>(crop_size);
             y2 = y2 + dy * static_cast<Dtype>(crop_size);
             // zoom
-            x2 = x2 / zoom_coeff;
-            y2 = y2 / zoom_coeff;
+            x2 = x2 / zoom_x_coeff;
+            y2 = y2 / zoom_y_coeff;
             // move the origin back
             x2 = x2 + .5 * static_cast<Dtype>(width);
             y2 = y2 + .5 * static_cast<Dtype>(height);
@@ -339,7 +348,8 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       }
       if (counter >= max_num_tries) {
         angle=0.;
-        zoom_coeff=1.;
+        zoom_x_coeff=1.;
+        zoom_y_coeff=1.;
         dx=0.;
         dy=0.;
         mirror = false;
@@ -352,13 +362,13 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       if (do_mirror)
         do_mirror = mirror;
       if (do_zoom)
-        do_zoom = (fabs(zoom_coeff - 1.) >1e-2);
+        do_zoom = (fabs(zoom_x_coeff - 1.) >1e-2 || fabs(zoom_y_coeff - 1.) >1e-2);
       
       do_spatial_transform = (do_rotate || do_translate || do_mirror || do_zoom);
       
       if (write_augmented.size()) { 
         if (do_spatial_transform)
-          LOG(INFO) << "Augmenting " << item_id << ". angle: " << angle << ", zoom: " << zoom_coeff << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
+          LOG(INFO) << "Augmenting " << item_id << ". angle: " << angle << ", zoom_x: " << zoom_x_coeff << ", zoom_y: " << zoom_y_coeff  << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
         else
           LOG(INFO) << "Not augmenting " << item_id << " spatially";
       } 
@@ -373,8 +383,10 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
         }
         if (do_rotate)
           top_params[item_id * num_params_ + 3] = angle;
-        if (do_zoom)
-          top_params[item_id * num_params_ + 4] = log(zoom_coeff);
+        if (do_zoom) {
+          top_params[item_id * num_params_ + 4] = log(zoom_x_coeff);
+          top_params[item_id * num_params_ + 5] = log(zoom_y_coeff);
+        }
       }
     } 
     
@@ -512,8 +524,8 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
           }
           // zoom
           if (do_zoom) {
-            x2 = x2 / zoom_coeff;
-            y2 = y2 / zoom_coeff;
+            x2 = x2 / zoom_x_coeff;
+            y2 = y2 / zoom_y_coeff;
           }
           // move the origin back
           x2 = x2 + .5 * static_cast<Dtype>(width);

@@ -183,6 +183,16 @@ message LayerParameter {
     UNPOOLING = 33;
     DECONVOLUTION = 34;
     SUBSPACEPOOLING = 35;
+    INNER_PRODUCT_ORTH = 38;
+    LABEL_TO_ONEHOT = 39;
+    SOFTMAX_MULTILABEL_LOSS = 40;
+    CONVOLUTION_ORTH = 41;
+    HDF5_DATA_COUPLES = 42;
+    SOFTMAX_KL_LOSS = 43;
+    SOFTMAX_ENTROPY_LOSS = 44;
+    ENTROPY_LOSS = 45;
+    ACCUM = 46;
+    
   }
   optional LayerType type = 5; // the layer type from the enum above
 
@@ -244,7 +254,8 @@ message AugmentationParameter {
   optional RandomGeneratorParameter mirror = 10;
   optional RandomGeneratorParameter translate = 11 ;
   optional RandomGeneratorParameter rotate = 12 ;
-  optional RandomGeneratorParameter zoom = 13 ;  
+  optional RandomGeneratorParameter zoom = 13 ;
+  optional RandomGeneratorParameter squeeze = 14 ;
   optional RandomGeneratorParameter lmult_pow = 20 ;
   optional RandomGeneratorParameter lmult_mult = 21 ;
   optional RandomGeneratorParameter lmult_add = 22 ;
@@ -451,6 +462,26 @@ message MemoryDataParameter {
   optional uint32 channels = 2;
   optional uint32 height = 3;
   optional uint32 width = 4;
+}
+
+// Message that stores parameters used by Orth layers
+message OrthParameter {
+  
+  enum OrthMethod {    
+    NONE = 1;                // do not orthogonalize
+    ESMAEILI = 2;            // as in "A modification for Kovarik’s method" by H. Esmaeili
+    NORM = 3;                // normalize the columns, do not orthogonalize
+  }
+  optional OrthMethod orth_method = 1 [default = NONE]; // method of orthogonalization
+  optional uint32 step = 2 [default = 1]; // how often to perform orthogonalization
+  optional uint32 max_num_iter = 3 [default = 1]; // max number of iterations during orthogonalization
+  optional float eps = 4 [default = 1e-3]; // target MSE
+  optional float esmaeili_coeff = 5 [default = 0.55]; // coefficient to be used by Esmaeli's algorithm
+  optional float col_norm = 6 [default = 1.]; // Norm of each column in the resulting orthogonal matrix
+  optional float min_norm = 7 [default = 0.]; // normalize if norm is smaller than this
+  optional float max_norm = 8 [default = 10.]; //                   or larger than this
+  optional float target_norm = 9 [default = 1.]; //           and set the norm to this
+  optional bool transpose = 10 [default = false]; // transpose the matrix before orthogonalizing?
 }
 
 // Message that stores parameters used by PoolingLayer
