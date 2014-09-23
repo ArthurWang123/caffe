@@ -41,8 +41,8 @@ Dtype SoftmaxMultilabelLossLayer<Dtype>::Forward_cpu(
   int dim =  count / num;
   Dtype loss;
   for (int i=0; i<count; i++) { 
-    log_prob_data[i] = -log(max(prob_data[i], Dtype(FLT_MIN)));
-    log_label_data[i] = -log(max(label[i], Dtype(FLT_MIN)));
+    log_prob_data[i] = -log(max(prob_data[i], Dtype(kLOG_THRESHOLD)));
+    log_label_data[i] = -log(max(label[i], Dtype(kLOG_THRESHOLD)));
   }  
   loss = caffe_cpu_dot<Dtype>(count, label, log_prob_data);
   loss -= caffe_cpu_dot<Dtype>(count, label, log_label_data);    // comment out to make gradient tests work

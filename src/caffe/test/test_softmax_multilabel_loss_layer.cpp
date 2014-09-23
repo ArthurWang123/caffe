@@ -53,7 +53,7 @@ typedef ::testing::Types<float, double> Dtypes;
 TYPED_TEST_CASE(SoftmaxMultilabelLossLayerTest, Dtypes);
 
 // Gradients tests dont work because for convenience we normalize the loss to have minimum value 0 (effectively turning it into KL-divergence), 
-// which affects the numerically computed gradient
+// which affects the numerically computed gradient. Comment out couple of lines in the implementation of the layer to avoid this.
 
 TYPED_TEST(SoftmaxMultilabelLossLayerTest, TestGradientCPU) {
   LayerParameter layer_param;

@@ -15,7 +15,7 @@ namespace caffe {
 template <typename Dtype>
 __global__ void neg_log(const int n, const Dtype* in, Dtype* out) {
   CUDA_KERNEL_LOOP(index, n) {
-    out[index] = -log(max(in[index], Dtype(FLT_MIN)));
+    out[index] = -log(max(in[index], Dtype(kLOG_THRESHOLD)));
   }
 }
 
