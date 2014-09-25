@@ -31,7 +31,8 @@ Dtype SoftmaxMultilabelLossLayer<Dtype>::Forward_gpu(
   const Dtype* label = bottom[1]->gpu_data();
   int num = prob_.num();
   int count = prob_.count();
-  Dtype loss, loss1;
+  Dtype loss;
+//   Dtype loss1;
   
   neg_log<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
       count, prob_data, log_prob_data);
@@ -39,8 +40,8 @@ Dtype SoftmaxMultilabelLossLayer<Dtype>::Forward_gpu(
       count, label, log_label_data);
   
   caffe_gpu_dot<Dtype>(count, label, log_prob_data, &loss);
-  caffe_gpu_dot<Dtype>(count, label, log_label_data, &loss1);     // comment out to make gradient tests work
-  loss -= loss1;                                                  // comment out to make gradient tests work   
+//   caffe_gpu_dot<Dtype>(count, label, log_label_data, &loss1);     // comment out to make gradient tests work
+//   loss -= loss1;                                                  // comment out to make gradient tests work   
   return loss / num;
 }
 

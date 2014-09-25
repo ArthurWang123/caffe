@@ -45,12 +45,12 @@ TYPED_TEST(LabelToOnehotLayerTest, TestSetUp) {
   LayerParameter layer_param;
   InnerProductParameter* inner_product_param =
       layer_param.mutable_inner_product_param();
-  inner_product_param->set_num_output(5);
+  inner_product_param->set_num_output(4);
   shared_ptr<LabelToOnehotLayer<TypeParam> > layer(
       new LabelToOnehotLayer<TypeParam>(layer_param));
   layer->SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
   EXPECT_EQ(this->blob_top_->num(), 5);
-  EXPECT_EQ(this->blob_top_->channels(), 5);
+  EXPECT_EQ(this->blob_top_->channels(), 4);
   EXPECT_EQ(this->blob_top_->height(), 1);
   EXPECT_EQ(this->blob_top_->width(), 1);
 }
@@ -59,7 +59,7 @@ TYPED_TEST(LabelToOnehotLayerTest, TestCPU) {
   LayerParameter layer_param;
   InnerProductParameter* inner_product_param =
       layer_param.mutable_inner_product_param();
-  inner_product_param->set_num_output(5);
+  inner_product_param->set_num_output(4);
   Caffe::set_mode(Caffe::CPU);
   shared_ptr<LabelToOnehotLayer<TypeParam> > layer(
       new LabelToOnehotLayer<TypeParam>(layer_param));
@@ -67,12 +67,13 @@ TYPED_TEST(LabelToOnehotLayerTest, TestCPU) {
   layer->Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
   const TypeParam* data = this->blob_top_->cpu_data();
   const int num = this->blob_top_->num();
+  const int channels = this->blob_top_->channels();
   for (int i = 0; i < num; ++i) {
-    for (int j = 0; j < num; ++j) {
+    for (int j = 0; j < channels; ++j) {
       if (j == i % 3)
-        EXPECT_EQ(data[i*num + j], 1.);
+        EXPECT_EQ(data[i*channels + j], 1.);
       else
-        EXPECT_EQ(data[i*num + j], 0.);
+        EXPECT_EQ(data[i*channels + j], 0.);
     }
   }
 }
@@ -82,7 +83,7 @@ TYPED_TEST(LabelToOnehotLayerTest, TestGPU) {
     LayerParameter layer_param;
     InnerProductParameter* inner_product_param =
         layer_param.mutable_inner_product_param();
-    inner_product_param->set_num_output(5);
+    inner_product_param->set_num_output(4);
     Caffe::set_mode(Caffe::GPU);
     shared_ptr<LabelToOnehotLayer<TypeParam> > layer(
         new LabelToOnehotLayer<TypeParam>(layer_param));
@@ -90,12 +91,13 @@ TYPED_TEST(LabelToOnehotLayerTest, TestGPU) {
     layer->Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
     const TypeParam* data = this->blob_top_->cpu_data();
     const int num = this->blob_top_->num();
+    const int channels = this->blob_top_->channels();
     for (int i = 0; i < num; ++i) {
-      for (int j = 0; j < num; ++j) {
+      for (int j = 0; j < channels; ++j) {
         if (j == i % 3)
-          EXPECT_EQ(data[i*num + j], 1.);
+          EXPECT_EQ(data[i*channels + j], 1.);
         else
-          EXPECT_EQ(data[i*num + j], 0.);
+          EXPECT_EQ(data[i*channels + j], 0.);
       }
     }
   } else {

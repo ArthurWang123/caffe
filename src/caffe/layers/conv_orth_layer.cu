@@ -23,7 +23,7 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& botto
   
   // Orthogonalization  
   if (Caffe::phase() == Caffe::TRAIN && orth_step_ > 0) {
-    if (!(iter_ % orth_step_)) {
+    if (!(iter_ % orth_step_) && (orth_before_iter_ == 0 || iter_ < orth_before_iter_)) {
 //       LOG(INFO) << "Orthogonalizing, iter=" << iter_;
       switch (orth_method_) {
         case OrthParameter_OrthMethod_ESMAEILI:
@@ -64,7 +64,7 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& botto
           
           break;
         }
-        case OrthParameter_OrthMethod_NORM:
+        case OrthParameter_OrthMethod_NORM_L2:
         {
           normalize_weights(min_norm_, max_norm_, target_norm_);
           break;

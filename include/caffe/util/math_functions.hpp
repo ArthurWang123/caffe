@@ -177,10 +177,10 @@ uint32_t caffe_gpu_hamming_distance(const int n, const Dtype* x,
 
 // Returns the sum of the absolute values of the elements of vector x
 template <typename Dtype>
-Dtype caffe_cpu_asum(const int n, const Dtype* x);
+Dtype caffe_cpu_asum(const int n, const Dtype* x, int incx = 1);
 
 template <typename Dtype>
-void caffe_gpu_asum(const int n, const Dtype* x, Dtype* y);
+void caffe_gpu_asum(const int n, const Dtype* x, Dtype* y, int incx = 1);
 
 // Returns the l2 norm of a vector
 template <typename Dtype>

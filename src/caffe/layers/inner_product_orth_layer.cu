@@ -12,6 +12,13 @@
 #include "caffe/util/math_functions.hpp"
 
 namespace caffe {
+  
+template <typename Dtype>
+__global__ void make_nonneg(const int n, Dtype* in) {
+  CUDA_KERNEL_LOOP(index, n) {
+    in[index] = max(0., in[index]);      
+  }
+}
 
 template <typename Dtype>
 Dtype InnerProductOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
@@ -22,7 +29,7 @@ Dtype InnerProductOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bott
   
   // Orthogonalizing
   if (Caffe::phase() == Caffe::TRAIN && orth_step_ > 0) {
-    if (!(iter_ % orth_step_)) {
+    if (!(iter_ % orth_step_) && (orth_before_iter_ == 0 || iter_ < orth_before_iter_)) {
 //       LOG(INFO) << "Orthogonalizing, iter=" << iter_;
       switch (orth_method_) {
         case OrthParameter_OrthMethod_ESMAEILI:
@@ -57,9 +64,23 @@ Dtype InnerProductOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bott
           caffe_gpu_scal(N_*K_, col_norm_, weight);
           break;
         }
-        case OrthParameter_OrthMethod_NORM:
+        case OrthParameter_OrthMethod_NORM_L2:
         {
           normalize_weights(min_norm_, max_norm_, target_norm_);
+          break;
+        }
+        case OrthParameter_OrthMethod_NORM_L1:
+        {
+          normalize_weights_l1(min_norm_, max_norm_, target_norm_);
+          break;
+        }
+        case OrthParameter_OrthMethod_NORM_L1_NONNEG:
+        {
+//           LOG(INFO) << "Make nonneg";
+          make_nonneg<Dtype><<<CAFFE_GET_BLOCKS(this->blobs_[0]->count()), CAFFE_CUDA_NUM_THREADS>>>(
+              this->blobs_[0]->count(), weight);
+//           LOG(INFO) << "Normalize";
+          normalize_weights_l1(min_norm_, max_norm_, target_norm_);
           break;
         }
         case OrthParameter_OrthMethod_NONE:

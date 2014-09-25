@@ -65,6 +65,7 @@ void InnerProductOrthLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   col_norm_ = this->layer_param_.orth_param().col_norm();
   esmaeili_coeff_ = this->layer_param_.orth_param().esmaeili_coeff();
   transpose_ = this->layer_param_.orth_param().transpose();
+  orth_before_iter_ = this->layer_param_.orth_param().orth_before_iter();
   if (N_ <= K_)
     min_error_ = Dtype(0);
   else
@@ -96,7 +97,7 @@ Dtype InnerProductOrthLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
   
   // Orthogonalizing
   if (Caffe::phase() == Caffe::TRAIN && orth_step_ > 0) {
-    if (!(iter_ % orth_step_)) {
+    if (!(iter_ % orth_step_) && (orth_before_iter_ == 0 || iter_ < orth_before_iter_)) {
 //       LOG(INFO) << "Orthogonalizing, iter=" << iter_;
       switch (orth_method_) {
         case OrthParameter_OrthMethod_ESMAEILI:
@@ -133,9 +134,22 @@ Dtype InnerProductOrthLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
           
           break;
         }
-        case OrthParameter_OrthMethod_NORM:
+        case OrthParameter_OrthMethod_NORM_L2:
         {
           normalize_weights(min_norm_, max_norm_, target_norm_);
+          break;
+        }
+        case OrthParameter_OrthMethod_NORM_L1:
+        {
+          normalize_weights_l1(min_norm_, max_norm_, target_norm_);
+          break;
+        }
+        case OrthParameter_OrthMethod_NORM_L1_NONNEG:
+        {
+          for (int i=0; i < this->blobs_[0]->count(); ++i)
+            if (weight[i] < 0.)
+              weight[i] = 0.;
+          normalize_weights_l1(min_norm_, max_norm_, target_norm_);
           break;
         }
         case OrthParameter_OrthMethod_NONE:
@@ -246,6 +260,47 @@ void InnerProductOrthLayer<Dtype>::normalize_weights(Dtype min_norm, Dtype max_n
       for (int i = 0; i < N; ++i) {
           // compute l2 norm
           Dtype nrm = caffe_gpu_norm2(M, weight, N);
+          if (nrm > max_norm || nrm < min_norm) {
+              // and scale
+              caffe_gpu_scal(M, target_norm / (nrm + Dtype(1e-7)), weight, N);
+          }
+          weight += off;
+      }
+    break;
+  default:
+    LOG(FATAL) << "Unknown caffe mode.";
+    break;
+  }
+}
+
+template <typename Dtype>
+void InnerProductOrthLayer<Dtype>::normalize_weights_l1(Dtype min_norm, Dtype max_norm, Dtype target_norm) {
+  Dtype *weight = 0;
+  int M = this->blobs_[0]->height();
+  int N = this->blobs_[0]->width();
+  int off = this->blobs_[0]->offset(0, 0, 0, 1);
+  switch (Caffe::mode()) {
+  case Caffe::CPU:
+      // apply the constraint to each column
+      weight = this->blobs_[0]->mutable_cpu_data();
+      for (int i = 0; i < N; ++i) {
+          // compute l1 norm
+          Dtype nrm = caffe_cpu_asum(M, weight, N);
+          if (nrm > max_norm || nrm < min_norm) {
+              // and scale
+              caffe_scal(M, target_norm / (nrm + Dtype(1e-7)), weight, N);
+          }
+          weight += off;
+      }
+      break;
+  case Caffe::GPU:
+      // apply the constraint to each column
+//       LOG(INFO) << "L1 norm on GPU";
+      weight = this->blobs_[0]->mutable_gpu_data();
+      for (int i = 0; i < N; ++i) {
+          // compute l1 norm
+          Dtype nrm;
+          caffe_gpu_asum(M, weight, &nrm, N);
           if (nrm > max_norm || nrm < min_norm) {
               // and scale
               caffe_gpu_scal(M, target_norm / (nrm + Dtype(1e-7)), weight, N);

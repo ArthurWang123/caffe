@@ -214,6 +214,7 @@ class ConvolutionOrthLayer : public Layer<Dtype> {
   int iter_;
   int orth_step_;
   OrthParameter_OrthMethod orth_method_;
+  int orth_before_iter_;
   int max_num_iter_;
   Dtype eps_;
   Dtype esmaeili_coeff_;
@@ -332,6 +333,35 @@ class FlattenLayer : public Layer<Dtype> {
   int count_;
 };
 
+/* ReshapeLayer
+*/
+template <typename Dtype>
+class ReshapeLayer : public Layer<Dtype> {
+ public:
+  explicit ReshapeLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_RESHAPE;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int count_;
+};
+
 /* Im2colLayer
 */
 template <typename Dtype>
@@ -416,6 +446,7 @@ class InnerProductOrthLayer : public Layer<Dtype> {
   }
   virtual void normalize_weights(Dtype mnorm);
   virtual void normalize_weights(Dtype min_norm, Dtype max_norm, Dtype target_norm);
+  virtual void normalize_weights_l1(Dtype min_norm, Dtype max_norm, Dtype target_norm);
   virtual inline int ExactNumBottomBlobs() const { return 1; }
   virtual inline int ExactNumTopBlobs() const { return 1; }
 
@@ -437,6 +468,7 @@ class InnerProductOrthLayer : public Layer<Dtype> {
   
   int iter_;
   int orth_step_;
+  int orth_before_iter_;
   OrthParameter_OrthMethod orth_method_;
   int max_num_iter_;
   Dtype eps_;

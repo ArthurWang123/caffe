@@ -84,6 +84,7 @@ void ConvolutionOrthLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   min_norm_ = this->layer_param_.orth_param().min_norm();
   max_norm_ = this->layer_param_.orth_param().max_norm();
   target_norm_ = this->layer_param_.orth_param().target_norm();
+  orth_before_iter_ = this->layer_param_.orth_param().orth_before_iter();
   this->gram_.Reshape(1, 1, M_, M_);
   this->kk_.Reshape(1, 1, M_, M_);
   this->id_.Reshape(1, 1, M_, M_);
@@ -113,7 +114,7 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& botto
   
   // Orthogonalization  
   if (Caffe::phase() == Caffe::TRAIN && orth_step_ > 0) {
-    if (!(iter_ % orth_step_)) {
+    if (!(iter_ % orth_step_) && (orth_before_iter_ == 0 || iter_ < orth_before_iter_)) {
 //       LOG(INFO) << "Orthogonalizing, iter=" << iter_;
       switch (orth_method_) {
         case OrthParameter_OrthMethod_ESMAEILI:
@@ -150,7 +151,7 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& botto
           
           break;
         }
-        case OrthParameter_OrthMethod_NORM:
+        case OrthParameter_OrthMethod_NORM_L2:
         {
           normalize_weights(min_norm_, max_norm_, target_norm_);
           break;

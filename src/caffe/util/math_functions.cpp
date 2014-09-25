@@ -470,23 +470,23 @@ int caffe_cpu_hamming_distance<double>(const int n, const double* x,
 }
 
 template <>
-float caffe_cpu_asum<float>(const int n, const float* x) {
-  return cblas_sasum(n, x, 1);
+float caffe_cpu_asum<float>(const int n, const float* x, int incx) {
+  return cblas_sasum(n, x, incx);
 }
 
 template <>
-double caffe_cpu_asum<double>(const int n, const double* x) {
-  return cblas_dasum(n, x, 1);
+double caffe_cpu_asum<double>(const int n, const double* x, int incx) {
+  return cblas_dasum(n, x, incx);
 }
 
 template <>
-void caffe_gpu_asum<float>(const int n, const float* x, float* y) {
-  CUBLAS_CHECK(cublasSasum(Caffe::cublas_handle(), n, x, 1, y));
+void caffe_gpu_asum<float>(const int n, const float* x, float* y, int incx) {
+  CUBLAS_CHECK(cublasSasum(Caffe::cublas_handle(), n, x, incx, y));
 }
 
 template <>
-void caffe_gpu_asum<double>(const int n, const double* x, double* y) {
-  CUBLAS_CHECK(cublasDasum(Caffe::cublas_handle(), n, x, 1, y));
+void caffe_gpu_asum<double>(const int n, const double* x, double* y, int incx) {
+  CUBLAS_CHECK(cublasDasum(Caffe::cublas_handle(), n, x, incx, y));
 }
 
 template <>

@@ -193,7 +193,7 @@ message LayerParameter {
     SOFTMAX_ENTROPY_LOSS = 44;
     ENTROPY_LOSS = 45;
     ACCUM = 46;
-    
+    RESHAPE = 47;    
   }
   optional LayerType type = 5; // the layer type from the enum above
 
@@ -232,8 +232,9 @@ message LayerParameter {
   optional OrthParameter orth_param = 33;
   optional CouplesParameter couples_param = 34;
   optional AccumParameter accum_param = 35;
+  optional ReshapeParameter reshape_param = 36;
   
-  repeated string share_weights_with = 36;
+  repeated string share_weights_with = 40;
   
   
 
@@ -486,7 +487,9 @@ message OrthParameter {
   enum OrthMethod {    
     NONE = 1;                // do not orthogonalize
     ESMAEILI = 2;            // as in "A modification for Kovarik’s method" by H. Esmaeili
-    NORM = 3;                // normalize the columns, do not orthogonalize
+    NORM_L2 = 3;                // normalize the columns wrt L2 norm, do not orthogonalize
+    NORM_L1 = 4;                // normalize the columns wrt L1 norm, do not orthogonalize
+    NORM_L1_NONNEG = 5;                // make all elements nonnegative, normalize the columns wrt L1 norm, do not orthogonalize
   }
   optional OrthMethod orth_method = 1 [default = NONE]; // method of orthogonalization
   optional uint32 step = 2 [default = 1]; // how often to perform orthogonalization
@@ -498,6 +501,7 @@ message OrthParameter {
   optional float max_norm = 8 [default = 10.]; //                   or larger than this
   optional float target_norm = 9 [default = 1.]; //           and set the norm to this
   optional bool transpose = 10 [default = false]; // transpose the matrix before orthogonalizing?
+  optional uint32 orth_before_iter = 11 [default = 0]; // only do orthogonalization before this iteration (0 means inf)
 }
 
 // Message that stores parameters used by PoolingLayer
@@ -560,6 +564,12 @@ message WindowDataParameter {
   // warp: cropped window is warped to a fixed size and aspect ratio
   // square: the tightest square around the window is cropped
   optional string crop_mode = 11 [default = "warp"];
+}
+
+message ReshapeParameter {
+  optional uint32 channels = 1;
+  optional uint32 height = 2;
+  optional uint32 width = 3;
 }
 
 // DEPRECATED: V0LayerParameter is the old way of specifying layer parameters
