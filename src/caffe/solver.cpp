@@ -324,6 +324,18 @@ Dtype SGDSolver<Dtype>::GetLearningRate() {
     CHECK_GT(this->param_.stepsize(), 0) << "step size necessary.";
     rate = (this->iter_ > this->param_.stepsize()) ? this->param_.base_lr() * Dtype(this->param_.stepsize()) / this->iter_
       : this->param_.base_lr();
+  } else if (lr_policy == "arbitrary_steps") {
+    CHECK_GE(this->param_.step_lr_size(), 1) << "need step_lr and step_iter for the fixed_steps policy";
+    CHECK_EQ(this->param_.step_lr_size(), this->param_.step_iter_size()+1) << "must have one more step_lr than step_iter";
+    int nsteps = this->param_.step_iter_size();
+    int end_iter = 0;
+    int i;
+    for (i=0; i < nsteps && this->iter_ >= end_iter; ++i)
+      end_iter += this->param_.step_iter().Get(i);
+    if (this->iter_ >= end_iter)
+      rate = this->param_.step_lr().Get(i);
+    else
+      rate = this->param_.step_lr().Get(i-1);
   } else {
     LOG(FATAL) << "Unknown learning rate policy: " << lr_policy;
   }

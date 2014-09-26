@@ -117,6 +117,9 @@ message SolverParameter {
   optional string external_term_criterion_cmd = 26;
   optional int32 external_term_criterion_num_iter = 27;
   optional string load_weights_from = 29;
+  
+  repeated float step_lr = 30;
+  repeated uint32 step_iter = 31;
 }
 
 // A message that stores the solver snapshots
@@ -193,7 +196,8 @@ message LayerParameter {
     SOFTMAX_ENTROPY_LOSS = 44;
     ENTROPY_LOSS = 45;
     ACCUM = 46;
-    RESHAPE = 47;    
+    RESHAPE = 47;
+    SOFTMAX_CONDITION_LOSS = 48;
   }
   optional LayerType type = 5; // the layer type from the enum above
 
@@ -233,6 +237,7 @@ message LayerParameter {
   optional CouplesParameter couples_param = 34;
   optional AccumParameter accum_param = 35;
   optional ReshapeParameter reshape_param = 36;
+  optional ConditionParameter condition_param = 37;
   
   repeated string share_weights_with = 40;
   
@@ -289,6 +294,11 @@ message ConcatParameter {
   // the other dimensions must be the same for all the bottom blobs
   // By default it will concatenate blobs along channels dimension
   optional uint32 concat_dim = 1 [default = 1];
+}
+
+message ConditionParameter {
+  optional float ge_than = 1 [default = 0.];
+  optional float le_than = 2 [default = -1.];
 }
 
 // Message that stores parameters used by ConvolutionLayer
