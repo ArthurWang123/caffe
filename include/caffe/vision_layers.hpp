@@ -333,6 +333,37 @@ class FlattenLayer : public Layer<Dtype> {
   int count_;
 };
 
+template <typename Dtype>
+class InvertGradientLayer : public Layer<Dtype> {
+ public:
+  explicit InvertGradientLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_INVERT_GRADIENT;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  Dtype coeff_;
+  Dtype gamma_;
+  Dtype initial_coeff_;
+  Dtype final_coeff_;
+  int iter_;
+};
+
 /* ReshapeLayer
 */
 template <typename Dtype>
@@ -394,6 +425,41 @@ class Im2colLayer : public Layer<Dtype> {
   int height_;
   int width_;
   int pad_;
+};
+
+/*
+ * Im2perPixelLayer treats each pixel of num x channels x height x width blob as a separate sample, 
+ * thus producing (num * height * width) x channels x 1 x 1 output
+ */
+
+template <typename Dtype>
+class Im2perPixelLayer : public Layer<Dtype> {
+ public:
+  explicit Im2perPixelLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_IM2PERPIXEL;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int num_;
+  int channels_;
+  int height_;
+  int width_;
 };
 
 /* InnerProductLayer

@@ -32,10 +32,16 @@ class SoftmaxMultilabelLossLayerTest : public ::testing::Test {
     filler.Fill(this->blob_bottom_data_);
     blob_bottom_vec_.push_back(blob_bottom_data_);
     int num = blob_bottom_label_->num();
-    int dim = blob_bottom_label_->channels();
+    int channels = blob_bottom_label_->channels();
+    int width = blob_bottom_label_->width();
+    int height = blob_bottom_label_->height();
     for (int i = 0; i < num; ++i) {
-      blob_bottom_label_->mutable_cpu_data()[i*dim + caffe_rng_rand() % 5] += 0.5;
-      blob_bottom_label_->mutable_cpu_data()[i*dim + caffe_rng_rand() % 5] += 0.5;
+      for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+          blob_bottom_label_->mutable_cpu_data()[((i*channels + caffe_rng_rand() % 5)*width + x)*height + y] += 0.5;
+          blob_bottom_label_->mutable_cpu_data()[((i*channels + caffe_rng_rand() % 5)*width + x)*height + y] += 0.5;
+        }
+      }
     }
     blob_bottom_vec_.push_back(blob_bottom_label_);
   }
@@ -52,7 +58,7 @@ class SoftmaxMultilabelLossLayerTest : public ::testing::Test {
 typedef ::testing::Types<float, double> Dtypes;
 TYPED_TEST_CASE(SoftmaxMultilabelLossLayerTest, Dtypes);
 
-// Gradients tests dont work because for convenience we normalize the loss to have minimum value 0 (effectively turning it into KL-divergence), 
+// Gradients tests may not work because for convenience we normalize the loss to have minimum value 0 (effectively turning it into KL-divergence), 
 // which affects the numerically computed gradient. Comment out couple of lines in the implementation of the layer to avoid this.
 
 TYPED_TEST(SoftmaxMultilabelLossLayerTest, TestGradientCPU) {

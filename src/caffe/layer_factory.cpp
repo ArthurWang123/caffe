@@ -68,12 +68,16 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new ImageDataLayer<Dtype>(param);
   case LayerParameter_LayerType_IM2COL:
     return new Im2colLayer<Dtype>(param);
+  case LayerParameter_LayerType_IM2PERPIXEL:
+    return new Im2perPixelLayer<Dtype>(param);  
   case LayerParameter_LayerType_INFOGAIN_LOSS:
     return new InfogainLossLayer<Dtype>(param);
   case LayerParameter_LayerType_INNER_PRODUCT:
     return new InnerProductLayer<Dtype>(param);
   case LayerParameter_LayerType_INNER_PRODUCT_ORTH:
     return new InnerProductOrthLayer<Dtype>(param);
+  case LayerParameter_LayerType_INVERT_GRADIENT:
+    return new InvertGradientLayer<Dtype>(param);  
   case LayerParameter_LayerType_LABEL_TO_ONEHOT:
     return new LabelToOnehotLayer<Dtype>(param);  
   case LayerParameter_LayerType_LRN:

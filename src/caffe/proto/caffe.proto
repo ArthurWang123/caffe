@@ -198,6 +198,8 @@ message LayerParameter {
     ACCUM = 46;
     RESHAPE = 47;
     SOFTMAX_CONDITION_LOSS = 48;
+    IM2PERPIXEL = 49;
+    INVERT_GRADIENT = 50;
   }
   optional LayerType type = 5; // the layer type from the enum above
 
@@ -238,6 +240,7 @@ message LayerParameter {
   optional AccumParameter accum_param = 35;
   optional ReshapeParameter reshape_param = 36;
   optional ConditionParameter condition_param = 37;
+  optional InvertGradientParameter invert_gradient_param = 38;
   
   repeated string share_weights_with = 40;
   
@@ -464,6 +467,13 @@ message InnerProductParameter {
   optional bool bias_term = 2 [default = true]; // whether to have bias terms
   optional FillerParameter weight_filler = 3; // The filler for the weight
   optional FillerParameter bias_filler = 4; // The filler for the bias
+}
+
+message InvertGradientParameter {
+  // Specify the infogain matrix source.
+  optional float gamma = 1 [default = 10];
+  optional float initial_coeff = 2 [default = 0];
+  optional float final_coeff = 3 [default = 1];
 }
 
 message LossParameter {

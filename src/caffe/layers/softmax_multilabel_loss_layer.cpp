@@ -18,6 +18,8 @@ void SoftmaxMultilabelLossLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom
   Layer<Dtype>::SetUp(bottom, top);
   CHECK_EQ(bottom[0]->num(), bottom[1]->num());
   CHECK_EQ(bottom[0]->channels(), bottom[1]->channels());
+  CHECK_EQ(bottom[0]->width(), bottom[1]->width());
+  CHECK_EQ(bottom[0]->height(), bottom[1]->height());
   softmax_bottom_vec_.clear();
   softmax_bottom_vec_.push_back(bottom[0]);
   softmax_top_vec_.push_back(&prob_);
