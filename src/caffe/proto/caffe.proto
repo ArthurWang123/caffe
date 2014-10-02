@@ -291,6 +291,43 @@ message AugmentationParameter {
   optional RandomGeneratorParameter col_rotate = 32 ; 
 }
 
+// Message storing the actual coefficients of a transformation
+message AugmentationCoeff {
+  
+  optional float mirror = 1 [default = 0];
+  optional float dx = 2 [default = 0];
+  optional float dy = 3 [default = 0];
+  optional float angle = 4 [default = 0];
+  optional float zoom_x = 5 [default = 1];
+  optional float zoom_y = 6 [default = 1];
+  
+  optional float pow_nomean0 = 10 [default = 1];
+  optional float pow_nomean1 = 11 [default = 1];
+  optional float pow_nomean2 = 12 [default = 1];
+  optional float add_nomean0 = 13 [default = 0];
+  optional float add_nomean1 = 14 [default = 0];
+  optional float add_nomean2 = 15 [default = 0];
+  optional float mult_nomean0 = 16 [default = 1];
+  optional float mult_nomean1 = 17 [default = 1];
+  optional float mult_nomean2 = 18 [default = 1];
+  
+  optional float pow_withmean0 = 19 [default = 1];
+  optional float pow_withmean1 = 20 [default = 1];
+  optional float pow_withmean2 = 21 [default = 1];
+  optional float add_withmean0 = 22 [default = 0];
+  optional float add_withmean1 = 23 [default = 0];
+  optional float add_withmean2 = 24 [default = 0];
+  optional float mult_withmean0 = 25 [default = 1];
+  optional float mult_withmean1 = 26 [default = 1];
+  optional float mult_withmean2 = 27 [default = 1];
+  
+  optional float lmult_pow = 28 [default = 1];
+  optional float lmult_add = 29 [default = 0];
+  optional float lmult_mult = 30 [default = 1];
+  optional float col_angle = 31 [default = 0]; 
+  
+}  
+
 // Message that stores parameters used by ConcatLayer
 message ConcatParameter {
   // Concat Layer needs to specify the dimension along the concat will happen,
