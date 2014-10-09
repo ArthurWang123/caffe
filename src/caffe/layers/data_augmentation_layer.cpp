@@ -31,14 +31,19 @@ template <typename T> int sgn(T val) {
 }  
 
 template <typename Dtype>
-Dtype caffe_rng_generate(const RandomGeneratorParameter param) {
+Dtype caffe_rng_generate(const RandomGeneratorParameter& param, Dtype discount_coeff = 1) {
+  float spread;
+  if (param.apply_schedule())
+    spread = param.spread() * discount_coeff;
+  else
+    spread = param.spread();
   const std::string rand_type =  param.rand_type();
   //std::cout << rand_type << " " << rand_type.compare("uniform") << " " << rand_type.compare("gaussian") << " " << rand_type.compare("bernoulli");
   Dtype rand;
   if (rand_type.compare("uniform") == 0) {
     float tmp;
-    if (param.spread() > 0.)
-      caffe_rng_uniform(1, param.mean() - param.spread(), param.mean() + param.spread(), &tmp);
+    if (spread > 0.)
+      caffe_rng_uniform(1, param.mean() - spread, param.mean() + spread, &tmp);
     else
       tmp = param.mean();
     if (param.exp())
@@ -47,8 +52,8 @@ Dtype caffe_rng_generate(const RandomGeneratorParameter param) {
   }
   else if (rand_type.compare("gaussian") == 0) {
     float tmp;
-    if (param.spread() > 0.)
-      caffe_rng_gaussian(1, param.mean(), param.spread(), &tmp);
+    if (spread > 0.)
+      caffe_rng_gaussian(1, param.mean(), spread, &tmp);
     else
       tmp = param.mean();
     if (param.exp())
@@ -67,8 +72,8 @@ Dtype caffe_rng_generate(const RandomGeneratorParameter param) {
     float tmp1;
     int tmp2;
     
-    if (param.spread() > 0.) 
-      caffe_rng_uniform(1, param.mean() - param.spread(), param.mean() + param.spread(), &tmp1);
+    if (spread > 0.) 
+      caffe_rng_uniform(1, param.mean() - spread, param.mean() + spread, &tmp1);
     else
       tmp1 = param.mean();
     
@@ -88,8 +93,8 @@ Dtype caffe_rng_generate(const RandomGeneratorParameter param) {
     float tmp1;
     int tmp2;
     
-    if (param.spread() > 0.) 
-      caffe_rng_gaussian(1, param.mean(), param.spread(), &tmp1);
+    if (spread > 0.) 
+      caffe_rng_gaussian(1, param.mean(), spread, &tmp1);
     else
       tmp1 = param.mean();
     
@@ -159,6 +164,8 @@ void DataAugmentationLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   //num pixels to crop left/right and top/bottom
   
   aug_ = this->layer_param_.augmentation_param();
+  
+  discount_coeff_schedule_ = this->layer_param_.coeff_schedule_param();
   
   if (!aug_.has_crop_size())
     LOG(ERROR) << "Please enter crop_size if you want to perform augmentation";
@@ -275,7 +282,13 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
   bool input_params = input_params_;
   int num_params = num_params_;
   
-#pragma omp parallel for firstprivate(aug, train_phase, write_augmented, augment_during_test, mean_rgb, mean_eig, max_abs_eig, max_rgb, min_rgb, max_l, eigvec,  output_params, input_params, num_params)  private(rgb, eig)
+  Dtype discount_coeff = discount_coeff_schedule_.initial_coeff() + 
+      (discount_coeff_schedule_.final_coeff() - discount_coeff_schedule_.initial_coeff()) * (Dtype(2) /
+      (Dtype(1) + exp(-discount_coeff_schedule_.gamma() * num_iter_)) - Dtype(1));
+      
+  LOG(INFO) << "num_iter=" << num_iter_ << ", discount_coeff=" << discount_coeff;
+  
+#pragma omp parallel for firstprivate(aug, train_phase, write_augmented, augment_during_test, mean_rgb, mean_eig, max_abs_eig, max_rgb, min_rgb, max_l, eigvec,  output_params, input_params, num_params, discount_coeff)  private(rgb, eig)
   for (int item_id = 0; item_id < num; ++item_id) {
     int x, y, c, top_idx, bottom_idx, h_off, w_off;
     Dtype x1, y1, x2, y2;
@@ -324,7 +337,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       // in order to check this, just apply the transformations to 4 corners
       while (good_params < 4 && counter < max_num_tries) {
         good_params = 0;
-        generate_spatial_coeffs(aug, coeff);
+        generate_spatial_coeffs(aug, coeff, discount_coeff);
   
         //LOG(INFO) << "angle: " << angle << ", zoom: " << zoom_coeff << ", dx: " << dx << ", dy: " << dy << ", mirror: " << mirror;
         
@@ -367,21 +380,11 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       else {
         clear_defaults(coeff);
         do_spatial_transform  = coeff.has_mirror() || coeff.has_dx() || coeff.has_dy() || coeff.has_angle() || coeff.has_zoom_x() || coeff.has_zoom_y();
-      }
-      
-      if (write_augmented.size()) { 
-        if (do_spatial_transform)
-          LOG(INFO) << "Augmenting " << item_id 
-                    << ", mirror: "  << coeff.mirror()  << ", angle: " << coeff.angle()   
-                    << ", zoom_x: "  << coeff.zoom_x()  << ", zoom_y: "  << coeff.zoom_y() 
-                    << ", dx: "      << coeff.dx()      << ", dy: " << coeff.dy() ;
-        else
-          LOG(INFO) << "Not augmenting " << item_id << " spatially";
-      } 
+      }      
     } 
     
     if (do_chromatic_transform) {
-      generate_chromatic_coeffs(aug, coeff);
+      generate_chromatic_coeffs(aug, coeff, discount_coeff);
       clear_defaults(coeff);
       do_chromatic_transform =  coeff.has_pow_nomean0()     || coeff.has_pow_nomean1()     || coeff.has_pow_nomean2()    ||
                                 coeff.has_add_nomean0()     || coeff.has_add_nomean1()     || coeff.has_add_nomean2()    ||
@@ -392,21 +395,30 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
                                 coeff.has_lmult_pow()       || coeff.has_lmult_add()       || coeff.has_lmult_mult()     ||
                                 coeff.has_col_angle();      
       
-      if (write_augmented.size()) {
-        if (do_chromatic_transform) 
-          LOG(INFO) << "Augmenting "   << item_id 
-                    << ", pow_nm0: "   << coeff.pow_nomean0()   << ", mult_nm0: "   << coeff.mult_nomean0()   << ", add_nm0: "   << coeff.add_nomean0()
-                    << ", pow_nm1: "   << coeff.pow_nomean1()   << ", mult_nm1: "   << coeff.mult_nomean1()   << ", add_nm1: "   << coeff.add_nomean1()
-                    << ", pow_nm2: "   << coeff.pow_nomean2()   << ", mult_nm2: "   << coeff.mult_nomean2()   << ", add_nm2: "   << coeff.add_nomean2()
-                    << ", pow_wm0: "   << coeff.pow_withmean0() << ", mult_wm0: "   << coeff.mult_withmean0() << ", add_wm0: "   << coeff.add_withmean0()
-                    << ", pow_wm1: "   << coeff.pow_withmean1() << ", mult_wm1: "   << coeff.mult_withmean1() << ", add_wm1: "   << coeff.add_withmean1()
-                    << ", pow_wm2: "   << coeff.pow_withmean2() << ", mult_wm2: "   << coeff.mult_withmean2() << ", add_wm2: "   << coeff.add_withmean2()
-                    << ". lmult_pow: " << coeff.lmult_pow()     << ", lmult_mult: " <<  coeff.lmult_mult()    << ", lmult_add: " << coeff.lmult_add() 
-                    << ", col_angle: " << coeff.col_angle();
-        else
-          LOG(INFO) << "Not augmenting " << item_id << " chromatically";
-      }
     }
+    
+    if (write_augmented.size()) {
+      if (do_spatial_transform)
+        LOG(INFO) << "Augmenting " << item_id 
+                  << ", mirror: "  << coeff.mirror()  << ", angle: " << coeff.angle()   
+                  << ", zoom_x: "  << coeff.zoom_x()  << ", zoom_y: "  << coeff.zoom_y() 
+                  << ", dx: "      << coeff.dx()      << ", dy: " << coeff.dy() ;
+      else
+        LOG(INFO) << "Not augmenting " << item_id << " spatially";
+      if (do_chromatic_transform) 
+        LOG(INFO) << "Augmenting "   << item_id 
+                  << ", pow_nm0: "   << coeff.pow_nomean0()   << ", mult_nm0: "   << coeff.mult_nomean0()   << ", add_nm0: "   << coeff.add_nomean0()
+                  << ", pow_nm1: "   << coeff.pow_nomean1()   << ", mult_nm1: "   << coeff.mult_nomean1()   << ", add_nm1: "   << coeff.add_nomean1()
+                  << ", pow_nm2: "   << coeff.pow_nomean2()   << ", mult_nm2: "   << coeff.mult_nomean2()   << ", add_nm2: "   << coeff.add_nomean2()
+                  << ", pow_wm0: "   << coeff.pow_withmean0() << ", mult_wm0: "   << coeff.mult_withmean0() << ", add_wm0: "   << coeff.add_withmean0()
+                  << ", pow_wm1: "   << coeff.pow_withmean1() << ", mult_wm1: "   << coeff.mult_withmean1() << ", add_wm1: "   << coeff.add_withmean1()
+                  << ", pow_wm2: "   << coeff.pow_withmean2() << ", mult_wm2: "   << coeff.mult_withmean2() << ", add_wm2: "   << coeff.add_withmean2()
+                  << ". lmult_pow: " << coeff.lmult_pow()     << ", lmult_mult: " <<  coeff.lmult_mult()    << ", lmult_add: " << coeff.lmult_add() 
+                  << ", col_angle: " << coeff.col_angle();
+      else
+        LOG(INFO) << "Not augmenting " << item_id << " chromatically";
+    }
+
     
     if (output_params) {
 //       LOG(INFO) << "coeff_to_array item_id=" << item_id << ", num_params=" << num_params; 
@@ -703,21 +715,21 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
 }
 
 template <typename Dtype>
-void DataAugmentationLayer<Dtype>::generate_spatial_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff) {    
+void DataAugmentationLayer<Dtype>::generate_spatial_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff, Dtype discount_coeff) {    
   if (aug.has_mirror())
     coeff.set_mirror(static_cast<float>(caffe_rng_generate<bool>(aug.mirror())));
   if (aug.has_translate()) {
-    coeff.set_dx(caffe_rng_generate<float>(aug.translate()));
-    coeff.set_dy(caffe_rng_generate<float>(aug.translate()));
+    coeff.set_dx(caffe_rng_generate<float>(aug.translate(), discount_coeff));
+    coeff.set_dy(caffe_rng_generate<float>(aug.translate(), discount_coeff));
   } 
   if (aug.has_rotate())
-    coeff.set_angle(caffe_rng_generate<float>(aug.rotate()));
+    coeff.set_angle(caffe_rng_generate<float>(aug.rotate(), discount_coeff));
   if (aug.has_zoom()) {
-    coeff.set_zoom_x(caffe_rng_generate<float>(aug.zoom()));
+    coeff.set_zoom_x(caffe_rng_generate<float>(aug.zoom(), discount_coeff));
     coeff.set_zoom_y(coeff.zoom_x());
   }
   if (aug.has_squeeze()) {
-    float squeeze_coeff = caffe_rng_generate<float>(aug.squeeze());
+    float squeeze_coeff = caffe_rng_generate<float>(aug.squeeze(), discount_coeff);
     coeff.set_zoom_x(coeff.zoom_x() * squeeze_coeff);
     coeff.set_zoom_y(coeff.zoom_y() / squeeze_coeff);
   }
@@ -734,51 +746,51 @@ void DataAugmentationLayer<Dtype>::clear_spatial_coeffs(AugmentationCoeff& coeff
 }
 
 template <typename Dtype>
-void DataAugmentationLayer<Dtype>::generate_chromatic_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff) {  
+void DataAugmentationLayer<Dtype>::generate_chromatic_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff, Dtype discount_coeff) {  
   if (aug.has_ladd_pow())
-    coeff.set_pow_nomean0(caffe_rng_generate<float>(aug.ladd_pow()));
+    coeff.set_pow_nomean0(caffe_rng_generate<float>(aug.ladd_pow(), discount_coeff));
   if (aug.has_col_pow()) {
-    coeff.set_pow_nomean1(caffe_rng_generate<float>(aug.col_pow()));
-    coeff.set_pow_nomean2(caffe_rng_generate<float>(aug.col_pow()));
+    coeff.set_pow_nomean1(caffe_rng_generate<float>(aug.col_pow(), discount_coeff));
+    coeff.set_pow_nomean2(caffe_rng_generate<float>(aug.col_pow(), discount_coeff));
   }
   
   if (aug.has_ladd_add())
-    coeff.set_add_nomean0(caffe_rng_generate<float>(aug.ladd_add()));
+    coeff.set_add_nomean0(caffe_rng_generate<float>(aug.ladd_add(), discount_coeff));
   if (aug.has_col_add()) {
-    coeff.set_add_nomean1(caffe_rng_generate<float>(aug.col_add()));
-    coeff.set_add_nomean2(caffe_rng_generate<float>(aug.col_add()));
+    coeff.set_add_nomean1(caffe_rng_generate<float>(aug.col_add(), discount_coeff));
+    coeff.set_add_nomean2(caffe_rng_generate<float>(aug.col_add(), discount_coeff));
   }
   
   if (aug.has_ladd_mult())
-    coeff.set_mult_nomean0(caffe_rng_generate<float>(aug.ladd_mult()));
+    coeff.set_mult_nomean0(caffe_rng_generate<float>(aug.ladd_mult(), discount_coeff));
   if (aug.has_col_mult()) {
-    coeff.set_mult_nomean1(caffe_rng_generate<float>(aug.col_mult()));
-    coeff.set_mult_nomean2(caffe_rng_generate<float>(aug.col_mult()));
+    coeff.set_mult_nomean1(caffe_rng_generate<float>(aug.col_mult(), discount_coeff));
+    coeff.set_mult_nomean2(caffe_rng_generate<float>(aug.col_mult(), discount_coeff));
   }     
 
   if (aug.has_sat_pow()) {
-    coeff.set_pow_withmean1(caffe_rng_generate<float>(aug.sat_pow()));
+    coeff.set_pow_withmean1(caffe_rng_generate<float>(aug.sat_pow(), discount_coeff));
     coeff.set_pow_withmean2(coeff.pow_withmean1());
   }
   
   if (aug.has_sat_add()) {
-    coeff.set_add_withmean1(caffe_rng_generate<float>(aug.sat_add()));
+    coeff.set_add_withmean1(caffe_rng_generate<float>(aug.sat_add(), discount_coeff));
     coeff.set_add_withmean2(coeff.add_withmean1());
   }
   
   if (aug.has_sat_mult()) {
-    coeff.set_mult_withmean1(caffe_rng_generate<float>(aug.sat_mult()));
+    coeff.set_mult_withmean1(caffe_rng_generate<float>(aug.sat_mult(), discount_coeff));
     coeff.set_mult_withmean2(coeff.mult_withmean1());
   }
   
   if (aug.has_lmult_pow())
-    coeff.set_lmult_pow(caffe_rng_generate<float>(aug.lmult_pow()));
+    coeff.set_lmult_pow(caffe_rng_generate<float>(aug.lmult_pow(), discount_coeff));
   if (aug.has_lmult_mult())
-    coeff.set_lmult_mult(caffe_rng_generate<float>(aug.lmult_mult()));
+    coeff.set_lmult_mult(caffe_rng_generate<float>(aug.lmult_mult(), discount_coeff));
   if (aug.has_lmult_add())
-    coeff.set_lmult_add(caffe_rng_generate<float>(aug.lmult_add()));
+    coeff.set_lmult_add(caffe_rng_generate<float>(aug.lmult_add(), discount_coeff));
   if (aug.has_col_rotate())
-    coeff.set_col_angle(caffe_rng_generate<float>(aug.col_rotate()));  
+    coeff.set_col_angle(caffe_rng_generate<float>(aug.col_rotate(), discount_coeff));  
 }
 
 template <typename Dtype>
@@ -822,7 +834,7 @@ void DataAugmentationLayer<Dtype>::array_to_coeff(Dtype* in, AugmentationCoeff& 
       ref->SetFloat(&coeff, field_desc, exp(in[fn]));
 //     LOG(INFO) << "reading field " << fn << ": " << ref->GetFloat(coeff, field_desc);
   }
-} 
+}
 
 
 

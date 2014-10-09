@@ -13,9 +13,9 @@ void InvertGradientLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top) {
   Layer<Dtype>::SetUp(bottom, top);
   (*top)[0]->ReshapeLike(*(bottom[0]));
-  gamma_ = this->layer_param_.invert_gradient_param().gamma();
-  initial_coeff_ = this->layer_param_.invert_gradient_param().initial_coeff();
-  final_coeff_ = this->layer_param_.invert_gradient_param().final_coeff();
+  gamma_ = this->layer_param_.coeff_schedule_param().gamma();
+  initial_coeff_ = this->layer_param_.coeff_schedule_param().initial_coeff();
+  final_coeff_ = this->layer_param_.coeff_schedule_param().final_coeff();
   iter_ = 0;
   coeff_ = initial_coeff_;
 }

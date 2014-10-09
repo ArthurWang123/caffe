@@ -240,9 +240,10 @@ message LayerParameter {
   optional AccumParameter accum_param = 35;
   optional ReshapeParameter reshape_param = 36;
   optional ConditionParameter condition_param = 37;
-  optional InvertGradientParameter invert_gradient_param = 38;
+  optional CoeffScheduleParameter coeff_schedule_param = 38;
   
   repeated string share_weights_with = 40;
+  repeated string initialize_weights_with = 41;
   
   
 
@@ -506,10 +507,9 @@ message InnerProductParameter {
   optional FillerParameter bias_filler = 4; // The filler for the bias
 }
 
-message InvertGradientParameter {
-  // Specify the infogain matrix source.
-  optional float gamma = 1 [default = 10];
-  optional float initial_coeff = 2 [default = 0];
+message CoeffScheduleParameter {
+  optional float gamma = 1 [default = 1];
+  optional float initial_coeff = 2 [default = 1];
   optional float final_coeff = 3 [default = 1];
 }
 
@@ -591,6 +591,7 @@ message RandomGeneratorParameter {
   optional float mean = 4 [default = 0. ]; // mean of the random variable
   optional float spread = 5 [default = 0. ]; // half of interval length for uniform; standard deviation for gaussian 
   optional float prob = 6 [default = .5];
+  optional bool apply_schedule = 7 [default = true];
 }
 
 // Message that stores parameters used by WindowDataLayer

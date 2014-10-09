@@ -103,6 +103,7 @@ class Net {
   const shared_ptr<Layer<Dtype> > layer_by_name(const string& layer_name);
   // return losses
   inline vector<std::pair<int, float> >& losses() {return losses_; }
+  void initialize_weights();
 
  protected:
   // Helpers for Init.

@@ -384,8 +384,8 @@ class DataAugmentationLayer : public Layer<Dtype> {
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
       const bool propagate_down, vector<Blob<Dtype>*>* bottom)  { return; }
       
-  virtual void generate_spatial_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff);
-  virtual void generate_chromatic_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff);
+  virtual void generate_spatial_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff, Dtype discount_coeff = 1);
+  virtual void generate_chromatic_coeffs(const AugmentationParameter& aug, AugmentationCoeff& coeff, Dtype discount_coeff = 1);
   virtual void clear_spatial_coeffs(AugmentationCoeff& coeff);
   virtual void clear_defaults(AugmentationCoeff& coeff);
   virtual void coeff_to_array(const AugmentationCoeff& coeff, Dtype* out);
@@ -399,6 +399,7 @@ class DataAugmentationLayer : public Layer<Dtype> {
   Blob<Dtype> data_mean_;
   int num_iter_;
   AugmentationParameter aug_;
+  CoeffScheduleParameter discount_coeff_schedule_;
 };
 
 // This function is used to create a pthread that prefetches the data.

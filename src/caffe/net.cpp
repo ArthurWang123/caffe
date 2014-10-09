@@ -150,7 +150,7 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
         CHECK_EQ(curr_blob->width(), other_blob->width());
         curr_blob->ShareData(*other_blob);
       }
-    }      
+    }
   } 
   
   GetLearningRateAndWeightDecay();
@@ -458,6 +458,34 @@ const shared_ptr<Layer<Dtype> > Net<Dtype>::layer_by_name(
     LOG(WARNING) << "Unknown layer name " << layer_name;
   }
   return layer_ptr;
+}
+
+template <typename Dtype>
+void Net<Dtype>::initialize_weights() {
+  for (size_t layer_id = 0; layer_id < layer_names_.size(); ++layer_id) {
+    shared_ptr<Layer<Dtype> > curr_layer = layers_[layer_id];
+    for (int i=0; i < curr_layer->layer_param().initialize_weights_with_size(); i++) {
+      
+      std::string other_layer_name = layers_[layer_id]->layer_param().initialize_weights_with(i);
+      CHECK(layer_names_index_.count(other_layer_name)) << "Layer " << layer_names_[layer_id] <<
+          " cannot share weights with layer " << other_layer_name << ": layer " << 
+          other_layer_name << " not found";
+          
+      shared_ptr<Layer<Dtype> > other_layer = layers_[layer_names_index_[other_layer_name]];
+      CHECK_EQ(curr_layer->blobs().size(), other_layer->blobs().size());
+      
+      LOG(INFO) << "Layer " << layer_names_[layer_id] << " initializes weights with layer " << other_layer_name;
+      for (int j=0; j < curr_layer->blobs().size(); j++) {
+        shared_ptr<Blob<Dtype> > curr_blob = curr_layer->blobs()[j];
+        shared_ptr<Blob<Dtype> > other_blob = other_layer->blobs()[j];
+        CHECK_EQ(curr_blob->num(), other_blob->num());
+        CHECK_EQ(curr_blob->channels(), other_blob->channels());
+        CHECK_EQ(curr_blob->height(), other_blob->height());
+        CHECK_EQ(curr_blob->width(), other_blob->width());
+        curr_blob->CopyFrom(*other_blob, false, false);
+      }
+    }
+  }
 }
 
 INSTANTIATE_CLASS(Net);

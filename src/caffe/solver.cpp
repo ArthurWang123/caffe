@@ -140,6 +140,7 @@ void Solver<Dtype>::Solve(const char* resume_file) {
     LOG(INFO) << "Loading weights from " << this->param_.load_weights_from();
     ReadProtoFromBinaryFile(this->param_.load_weights_from().c_str(), &net_param);
     net_->CopyTrainedLayersFrom(net_param);
+    net_->initialize_weights();
   }
 
   // Run a test pass before doing any training to avoid waiting a potentially
