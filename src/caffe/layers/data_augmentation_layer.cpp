@@ -235,38 +235,38 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
 //   const Dtype eigvec [9] = {0.57, 0.58, 0.57, -0.72, 0.03, 0.68, -0.38, 0.81, -0.44};
 //  const Dtype eigvec [9] = {0.5878, 0.5859, 0.5579, -0.5631, -0.1989, 0.8021, -0.5809, 0.7856, -0.2130};
   const Dtype eigvec [9] = {0.51, 0.56, 0.65, 0.79, 0.01, -0.62, 0.35, -0.83, 0.44};
-  
-  for (int item_id = 0; item_id < num; ++item_id) {
-    for (int x=0; x < width; x++) {
-      for (int y=0; y < height; y++) {
-        for (int c=0; c<channels; c++) {          
-          rgb[c] = bottom_data[((item_id*channels + c)*width + x)*height + y];      
-        }
-        //if (x==0 && y ==0)
-        //    LOG(INFO) << "item_id=" << item_id << ", x=" << x << ", y=" << y << ", rgb[0]=" << rgb[0] << ", rgb[1]=" << rgb[1] << ", rgb[2]=" << rgb[2];
-        for (int c=0; c<channels; c++) {
-          eig[c] = eigvec[3*c] * rgb[0] + eigvec[3*c+1] * rgb[1] + eigvec[3*c+2] * rgb[2];
-          if (fabs(eig[c]) > max_abs_eig[c])
-            max_abs_eig[c] = fabs(eig[c]);
-          if (rgb[c] > max_rgb[c])
-            max_rgb[c] = rgb[c];
-          if (rgb[c] < min_rgb[c])
-            min_rgb[c] = rgb[c];
-          mean_rgb[c] = mean_rgb[c] + rgb[c]/width/height;
+  if (channels == 3) {  
+    for (int item_id = 0; item_id < num; ++item_id) {
+      for (int x=0; x < width; x++) {
+        for (int y=0; y < height; y++) {
+          for (int c=0; c<channels; c++) {          
+            rgb[c] = bottom_data[((item_id*channels + c)*width + x)*height + y];      
+          }
+          //if (x==0 && y ==0)
+          //    LOG(INFO) << "item_id=" << item_id << ", x=" << x << ", y=" << y << ", rgb[0]=" << rgb[0] << ", rgb[1]=" << rgb[1] << ", rgb[2]=" << rgb[2];
+          for (int c=0; c<channels; c++) {
+            eig[c] = eigvec[3*c] * rgb[0] + eigvec[3*c+1] * rgb[1] + eigvec[3*c+2] * rgb[2];
+            if (fabs(eig[c]) > max_abs_eig[c])
+              max_abs_eig[c] = fabs(eig[c]);
+            if (rgb[c] > max_rgb[c])
+              max_rgb[c] = rgb[c];
+            if (rgb[c] < min_rgb[c])
+              min_rgb[c] = rgb[c];
+            mean_rgb[c] = mean_rgb[c] + rgb[c]/width/height;
+          }
         }
       }
     }
+    for (int c=0; c<channels; c++)
+      mean_rgb[c] = mean_rgb[c] / num;
+    
+    for (int c=0; c<channels; c++) {
+      mean_eig[c] = eigvec[3*c] * mean_rgb[0] + eigvec[3*c+1] * mean_rgb[1] + eigvec[3*c+2] * mean_rgb[2];
+      if ( max_abs_eig[c] > 1e-2 )
+        mean_eig[c] = mean_eig[c] / max_abs_eig[c];
+    }  
+    max_l = sqrt(max_abs_eig[0]*max_abs_eig[0] + max_abs_eig[1]*max_abs_eig[1] + max_abs_eig[2]*max_abs_eig[2]);
   }
-  for (int c=0; c<channels; c++)
-    mean_rgb[c] = mean_rgb[c] / num;
-  
-  for (int c=0; c<channels; c++) {
-    mean_eig[c] = eigvec[3*c] * mean_rgb[0] + eigvec[3*c+1] * mean_rgb[1] + eigvec[3*c+2] * mean_rgb[2];
-    if ( max_abs_eig[c] > 1e-2 )
-      mean_eig[c] = mean_eig[c] / max_abs_eig[c];
-  }
-  
-  max_l = sqrt(max_abs_eig[0]*max_abs_eig[0] + max_abs_eig[1]*max_abs_eig[1] + max_abs_eig[2]*max_abs_eig[2]);;
    
   //LOG(INFO) << "mean_rgb[0]=" << mean_rgb[0] << ", mean_rgb[1]=" << mean_rgb[1] << ", mean_rgb[2]=" << mean_rgb[2];
   //LOG(INFO) << "max_abs_eig[0]=" << max_abs_eig[0];
@@ -286,9 +286,9 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
       (discount_coeff_schedule_.final_coeff() - discount_coeff_schedule_.initial_coeff()) * (Dtype(2) /
       (Dtype(1) + exp(-discount_coeff_schedule_.gamma() * num_iter_)) - Dtype(1));
       
-  LOG(INFO) << "num_iter=" << num_iter_ << ", discount_coeff=" << discount_coeff;
+//   LOG(INFO) << "num_iter=" << num_iter_ << ", discount_coeff=" << discount_coeff;
   
-#pragma omp parallel for firstprivate(aug, train_phase, write_augmented, augment_during_test, mean_rgb, mean_eig, max_abs_eig, max_rgb, min_rgb, max_l, eigvec,  output_params, input_params, num_params, discount_coeff)  private(rgb, eig)
+#pragma omp parallel for shared(aug, train_phase, write_augmented, augment_during_test, mean_rgb, mean_eig, max_abs_eig, max_rgb, min_rgb, max_l, eigvec,  output_params, input_params, num_params, discount_coeff)  private(rgb, eig)
   for (int item_id = 0; item_id < num; ++item_id) {
     int x, y, c, top_idx, bottom_idx, h_off, w_off;
     Dtype x1, y1, x2, y2;
@@ -303,28 +303,10 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
     }
     else {
       if (input_params) {
-//         LOG(INFO) << "array_to_coeff item_id=" << item_id << ", num_params=" << num_params; 
         array_to_coeff(bottom_params + item_id * num_params, coeff);
-//         do_spatial_transform  = coeff.has_mirror() || coeff.has_dx() || coeff.has_dy() || coeff.has_angle() || coeff.has_zoom_x() || coeff.has_zoom_y();
-//         do_chromatic_transform =  coeff.has_pow_nomean0()     || coeff.has_pow_nomean1()     || coeff.has_pow_nomean2()    ||
-//                                   coeff.has_add_nomean0()     || coeff.has_add_nomean1()     || coeff.has_add_nomean2()    ||
-//                                   coeff.has_mult_nomean0()    || coeff.has_mult_nomean1()    || coeff.has_mult_nomean2()   ||
-//                                   coeff.has_pow_withmean0()   || coeff.has_pow_withmean1()   || coeff.has_pow_withmean2()  ||
-//                                   coeff.has_add_withmean0()   || coeff.has_add_withmean1()   || coeff.has_add_withmean2()  ||
-//                                   coeff.has_mult_withmean0()  || coeff.has_mult_withmean1()  || coeff.has_mult_withmean2() ||
-//                                   coeff.has_lmult_pow()       || coeff.has_lmult_add()       || coeff.has_lmult_mult()     ||
-//                                   coeff.has_col_angle();
       }
       do_spatial_transform   = true;
       do_chromatic_transform = true;
-    
-
-     
-//         do_spatial_transform   = (aug.has_mirror()  || aug.has_translate()  || aug.has_rotate()  || aug.has_zoom() || aug.has_squeeze());
-//         do_chromatic_transform = (aug.has_lmult_pow() || aug.has_lmult_mult() || aug.has_lmult_add() || 
-//                                   aug.has_sat_pow()   || aug.has_sat_mult()   || aug.has_sat_add()   ||
-//                                   aug.has_col_pow()   || aug.has_col_mult()   || aug.has_col_add()   ||
-//                                   aug.has_ladd_pow()  || aug.has_ladd_mult()  || aug.has_ladd_add()  || aug.has_col_rotate());
     }  
       
       // sample the parameters of the transformations  
@@ -393,8 +375,13 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
                                 coeff.has_add_withmean0()   || coeff.has_add_withmean1()   || coeff.has_add_withmean2()  ||
                                 coeff.has_mult_withmean0()  || coeff.has_mult_withmean1()  || coeff.has_mult_withmean2() ||
                                 coeff.has_lmult_pow()       || coeff.has_lmult_add()       || coeff.has_lmult_mult()     ||
-                                coeff.has_col_angle();      
+                                coeff.has_col_angle();    
       
+    }
+    
+    // Augment chromatically only 3-channel inputs
+    if (do_chromatic_transform) {
+      CHECK_EQ(channels, 3) << "Augment chromatically only 3-channel inputs";
     }
     
     if (write_augmented.size()) {
