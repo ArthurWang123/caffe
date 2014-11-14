@@ -438,7 +438,7 @@ Dtype DataAugmentationLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bott
           // translate
           if (coeff.has_dx())
             x2 = x2 + coeff.dx() * static_cast<Dtype>(cropped_width_);
-          if (coeff.has_dx())
+          if (coeff.has_dy())
             y2 = y2 + coeff.dy() * static_cast<Dtype>(cropped_height_);
           // zoom
           if (coeff.has_zoom_x())

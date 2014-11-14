@@ -220,6 +220,7 @@ class ConvolutionOrthLayer : public Layer<Dtype> {
   Dtype esmaeili_coeff_;
   Dtype min_norm_;
   Dtype max_norm_;
+  Dtype col_norm_;
   Dtype target_norm_;
   Blob<Dtype> gram_;
   Blob<Dtype> kk_;
@@ -271,6 +272,69 @@ class DeConvolutionLayer : public Layer<Dtype> {
   int M_;
   int K_;
   int N_;
+};
+
+/* DeConvolutionOrthLayer
+*/
+template <typename Dtype>
+class DeConvolutionOrthLayer : public Layer<Dtype> {
+ public:
+  explicit DeConvolutionOrthLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_DECONVOLUTION_ORTH;
+  }
+  virtual inline int ExactNumBottomBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 1; }
+  virtual void normalize_weights(Dtype mnorm);
+  virtual void normalize_weights(Dtype min_norm, Dtype max_norm, Dtype target_norm);
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual Dtype Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int kernel_size_;
+  int stride_;
+  int num_;
+  int channels_;
+  int pad_;
+  int height_;
+  int width_;
+  int height_out_;
+  int width_out_;
+  int num_output_;
+  int group_;
+  Blob<Dtype> col_buffer_;
+  shared_ptr<SyncedMemory> bias_multiplier_;
+  bool bias_term_;
+  int M_;
+  int K_;
+  int N_;
+  
+  int iter_;
+  int orth_step_;
+  OrthParameter_OrthMethod orth_method_;
+  int orth_before_iter_;
+  int max_num_iter_;
+  Dtype eps_;
+  Dtype esmaeili_coeff_;
+  Dtype min_norm_;
+  Dtype max_norm_;
+  Dtype target_norm_;
+  Dtype col_norm_;
+  Blob<Dtype> gram_;
+  Blob<Dtype> kk_;
+  Blob<Dtype> ak_;
+  Blob<Dtype> id_;
 };
 
 /* EltwiseLayer

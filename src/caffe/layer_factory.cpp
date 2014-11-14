@@ -38,6 +38,8 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new ConvolutionOrthLayer<Dtype>(param);  
   case LayerParameter_LayerType_DECONVOLUTION:
     return new DeConvolutionLayer<Dtype>(param);
+  case LayerParameter_LayerType_DECONVOLUTION_ORTH:
+    return new DeConvolutionOrthLayer<Dtype>(param);  
   case LayerParameter_LayerType_DATA:
     return new DataLayer<Dtype>(param);
   case LayerParameter_LayerType_DATA_AUGMENTATION:

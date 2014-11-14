@@ -84,6 +84,7 @@ void ConvolutionOrthLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   min_norm_ = this->layer_param_.orth_param().min_norm();
   max_norm_ = this->layer_param_.orth_param().max_norm();
   target_norm_ = this->layer_param_.orth_param().target_norm();
+  col_norm_ = this->layer_param_.orth_param().col_norm();
   orth_before_iter_ = this->layer_param_.orth_param().orth_before_iter();
   this->gram_.Reshape(1, 1, M_, M_);
   this->kk_.Reshape(1, 1, M_, M_);
@@ -124,6 +125,8 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& botto
           Dtype* ak = this->ak_.mutable_cpu_data();
           const Dtype* id = this->id_.cpu_data();
           Dtype error;
+          caffe_scal(weight_offset * group_, Dtype(1) / col_norm_, weight);
+          
           for (int g = 0; g < group_; ++g) {
 //           LOG(INFO) << "ESMAEILI";                 
             for (int ni=0; ni<max_num_iter_; ni++) {
@@ -143,11 +146,13 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& botto
                 LOG(INFO) << "Iter " << iter_ << "." << ni <<"  ||Gram - id||=" << error;
                 caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, M_, K_, M_, (Dtype)1.,
                   kk, weight, (Dtype)0., ak);
-                caffe_copy(M_*K_, ak, weight);
+                caffe_copy<Dtype>(M_*K_, ak, weight);
               }
             }
             weight += weight_offset;
           }
+          weight = this->blobs_[0]->mutable_cpu_data();
+          caffe_scal(weight_offset * group_, col_norm_, weight);
           
           break;
         }

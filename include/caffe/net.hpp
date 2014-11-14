@@ -34,6 +34,8 @@ class Net {
   // Run forward with the input blobs already fed separately. You can get the
   // input blobs using input_blobs().
   const vector<Blob<Dtype>*>& ForwardPrefilled(Dtype* loss = NULL);
+  // By Alexey: a version of ForwardPrefilled which also outputs blobs from layers which have force_output = 1
+  const vector<Blob<Dtype>*> ForwardPrefilled_extra_output(Dtype* loss = NULL);
   // Run forward using a set of bottom blobs, and return the result.
   const vector<Blob<Dtype>*>& Forward(const vector<Blob<Dtype>* > & bottom,
       Dtype* loss = NULL);
@@ -143,6 +145,7 @@ class Net {
   vector<int> net_output_blob_indices_;
   vector<Blob<Dtype>*> net_input_blobs_;
   vector<Blob<Dtype>*> net_output_blobs_;
+  vector<Blob<Dtype>*> net_extra_output_blobs_;
   string name_;
   // The parameters in the network.
   vector<shared_ptr<Blob<Dtype> > > params_;

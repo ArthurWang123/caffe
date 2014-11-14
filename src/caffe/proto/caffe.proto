@@ -200,6 +200,7 @@ message LayerParameter {
     SOFTMAX_CONDITION_LOSS = 48;
     IM2PERPIXEL = 49;
     INVERT_GRADIENT = 50;
+    DECONVOLUTION_ORTH = 51;
   }
   optional LayerType type = 5; // the layer type from the enum above
 
@@ -244,6 +245,8 @@ message LayerParameter {
   
   repeated string share_weights_with = 40;
   repeated string initialize_weights_with = 41;
+  
+  optional bool force_output = 42 [default = false];
   
   
 

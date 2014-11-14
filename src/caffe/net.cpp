@@ -78,12 +78,16 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
     // After this layer is connected, set it up.
     // LOG(INFO) << "Setting up " << layer_names_[layer_id];
     layers_[layer_id]->SetUp(bottom_vecs_[layer_id], &top_vecs_[layer_id]);
+    if (layer_param.force_output())
+      LOG(INFO) << "This layers outputs its blobs";
     for (int top_id = 0; top_id < top_vecs_[layer_id].size(); ++top_id) {
       LOG(INFO) << "Top shape: " << top_vecs_[layer_id][top_id]->num() << " "
           << top_vecs_[layer_id][top_id]->channels() << " "
           << top_vecs_[layer_id][top_id]->height() << " "
           << top_vecs_[layer_id][top_id]->width() << " ("
           << top_vecs_[layer_id][top_id]->count() << ")";
+      if (layer_param.force_output())
+        net_extra_output_blobs_.push_back(top_vecs_[layer_id][top_id]);  
     }
     DLOG(INFO) << "Memory required for data: " << memory_used_ * sizeof(Dtype);
     const int blobs_lr_size = layers_[layer_id]->layer_param().blobs_lr_size();
@@ -285,6 +289,28 @@ const vector<Blob<Dtype>*>& Net<Dtype>::ForwardPrefilled(Dtype* loss) {
     }
   }
   return net_output_blobs_;
+}
+
+template <typename Dtype>
+const vector<Blob<Dtype>*> Net<Dtype>::ForwardPrefilled_extra_output(Dtype* loss) {
+  losses_.clear();
+  if (loss != NULL) {
+    *loss = Dtype(0.);
+  }
+  for (int i = 0; i < layers_.size(); ++i) {
+//     LOG(ERROR) << "Forwarding " << layer_names_[i];
+    Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], &top_vecs_[i]);
+    if (loss != NULL) {
+      *loss += layer_loss;
+      if (fabs(layer_loss) > 0)
+        losses_.push_back(std::make_pair(i, layer_loss));
+    }
+  }
+  vector<Blob<Dtype>*> all_output_blobs; 
+  all_output_blobs.reserve( net_output_blobs_.size() + net_extra_output_blobs_.size() );
+  all_output_blobs.insert( all_output_blobs.end(), net_output_blobs_.begin(), net_output_blobs_.end() );
+  all_output_blobs.insert( all_output_blobs.end(), net_extra_output_blobs_.begin(), net_extra_output_blobs_.end() );
+  return all_output_blobs;
 }
 
 template <typename Dtype>

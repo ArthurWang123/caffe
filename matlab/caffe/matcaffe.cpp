@@ -65,7 +65,7 @@ static mxArray* do_forward(const mxArray* const bottom) {
       LOG(FATAL) << "Unknown Caffe mode.";
     }  // switch (Caffe::mode())
   }
-  const vector<Blob<float>*>& output_blobs = net_->ForwardPrefilled();
+  const vector<Blob<float>*>& output_blobs = net_->ForwardPrefilled_extra_output();
   mxArray* mx_out = mxCreateCellMatrix(output_blobs.size(), 1);
   for (unsigned int i = 0; i < output_blobs.size(); ++i) {
     // internally data is stored as (width, height, channels, num)

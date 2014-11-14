@@ -33,9 +33,9 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& botto
           Dtype* ak = this->ak_.mutable_gpu_data();
           const Dtype* id = this->id_.gpu_data();
           Dtype error;
-//           LOG(INFO) << "group_=" << group_  << ", num=" <<  this->blobs_[0]->num() << ", channels=" <<  this->blobs_[0]->channels()
-//             << ", height=" <<  this->blobs_[0]->height() << ", width=" <<  this->blobs_[0]->width() 
-//             << ", M_=" << M_ << ", K_=" << K_;
+          
+          caffe_gpu_scal(weight_offset * group_, Dtype(1) / col_norm_, weight);
+          
           for (int g = 0; g < group_; ++g) {
 //           LOG(INFO) << "ESMAEILI";                 
             for (int ni=0; ni<max_num_iter_; ni++) {
@@ -61,6 +61,8 @@ Dtype ConvolutionOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& botto
             }
             weight += weight_offset;
           }
+          weight = this->blobs_[0]->mutable_gpu_data();
+          caffe_gpu_scal(weight_offset * group_, col_norm_, weight);
           
           break;
         }
