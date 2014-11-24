@@ -119,7 +119,6 @@ Dtype DeConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       // col2im forward to the top_data
       col2im_cpu(col_data, channels_, height_out_, width_out_, kernel_size_, pad_,
                  stride_, top_data + (*top)[0]->offset(n));
-      std::cout << col_buffer_.count() << " " << col_buffer_.channels() << std::endl;
       // Debugging stuff
       /*
       for (int k = 0; k < col_buffer_.count(); ++k) {
