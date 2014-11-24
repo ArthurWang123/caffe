@@ -18,9 +18,9 @@ namespace caffe {
 extern cudaDeviceProp CAFFE_TEST_CUDA_PROP;
 
 template <typename Dtype>
-class DeConvolutionLayerTest : public ::testing::Test {
+class DeConvolutionOrthLayerTest : public ::testing::Test {
  protected:
-  DeConvolutionLayerTest()
+  DeConvolutionOrthLayerTest()
       : blob_bottom_(new Blob<Dtype>()),
         blob_deconv_(new Blob<Dtype>()),
         blob_top_(new Blob<Dtype>()) {}
@@ -36,7 +36,7 @@ class DeConvolutionLayerTest : public ::testing::Test {
     blob_top_vec_.push_back(blob_top_);
   }
 
-  virtual ~DeConvolutionLayerTest() { delete blob_bottom_; delete blob_top_; delete blob_deconv_; }
+  virtual ~DeConvolutionOrthLayerTest() { delete blob_bottom_; delete blob_top_; delete blob_deconv_; }
   Blob<Dtype>* const blob_bottom_;
   Blob<Dtype>* const blob_deconv_;
   Blob<Dtype>* const blob_top_;
@@ -46,9 +46,9 @@ class DeConvolutionLayerTest : public ::testing::Test {
 };
 
 typedef ::testing::Types<float, double> Dtypes;
-TYPED_TEST_CASE(DeConvolutionLayerTest, Dtypes);
+TYPED_TEST_CASE(DeConvolutionOrthLayerTest, Dtypes);
 
-TYPED_TEST(DeConvolutionLayerTest, TestCPUSimpleConvolution) {
+TYPED_TEST(DeConvolutionOrthLayerTest, TestCPUSimpleConvolution) {
   // We will simply see if the convolution layer carries out averaging well.
   FillerParameter filler_param;
   filler_param.set_value(1.);
@@ -87,7 +87,7 @@ TYPED_TEST(DeConvolutionLayerTest, TestCPUSimpleConvolution) {
   deconvolution_param->mutable_weight_filler()->set_value(1);
   deconvolution_param->mutable_bias_filler()->set_type("constant");
   deconvolution_param->mutable_bias_filler()->set_value(0.1);
-  shared_ptr<Layer<TypeParam> > dlayer(new DeConvolutionLayer<TypeParam>(layer_param));
+  shared_ptr<Layer<TypeParam> > dlayer(new DeConvolutionOrthLayer<TypeParam>(layer_param));
   dlayer->SetUp(this->blob_top_vec_, &(this->blob_deconv_vec_));
   dlayer->Forward(this->blob_top_vec_, &(this->blob_deconv_vec_));
 
@@ -126,7 +126,7 @@ TYPED_TEST(DeConvolutionLayerTest, TestCPUSimpleConvolution) {
   // the gradient wrt. weights should be 1. * deconv_vec (which is 108.4)
 }
 
-TYPED_TEST(DeConvolutionLayerTest, TestCPUGradient) {
+TYPED_TEST(DeConvolutionOrthLayerTest, TestCPUGradient) {
   LayerParameter layer_param;
   DeConvolutionParameter* deconvolution_param =
       layer_param.mutable_deconvolution_param();
@@ -138,13 +138,13 @@ TYPED_TEST(DeConvolutionLayerTest, TestCPUGradient) {
   deconvolution_param->mutable_weight_filler()->set_type("gaussian");
   deconvolution_param->mutable_bias_filler()->set_type("gaussian");
   Caffe::set_mode(Caffe::CPU);
-  DeConvolutionLayer<TypeParam> layer(layer_param);
+  DeConvolutionOrthLayer<TypeParam> layer(layer_param);
   GradientChecker<TypeParam> checker(1e-2, 1e-3);
   checker.CheckGradientExhaustive(&layer, &(this->blob_bottom_vec_),
       &(this->blob_top_vec_));
 }
 
-TYPED_TEST(DeConvolutionLayerTest, TestGPUGradient) {
+TYPED_TEST(DeConvolutionOrthLayerTest, TestGPUGradient) {
   LayerParameter layer_param;
   DeConvolutionParameter* deconvolution_param =
       layer_param.mutable_deconvolution_param();
@@ -156,7 +156,7 @@ TYPED_TEST(DeConvolutionLayerTest, TestGPUGradient) {
   deconvolution_param->mutable_weight_filler()->set_type("gaussian");
   deconvolution_param->mutable_bias_filler()->set_type("gaussian");
   Caffe::set_mode(Caffe::GPU);
-  DeConvolutionLayer<TypeParam> layer(layer_param);
+  DeConvolutionOrthLayer<TypeParam> layer(layer_param);
   GradientChecker<TypeParam> checker(1e-2, 1e-3);
   checker.CheckGradientExhaustive(&layer, &(this->blob_bottom_vec_),
       &(this->blob_top_vec_));

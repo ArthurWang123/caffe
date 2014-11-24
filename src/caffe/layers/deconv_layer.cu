@@ -84,8 +84,8 @@ void DeConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
           // gradient wrt. bias
           if (bias_term_) {
               caffe_gpu_gemv<Dtype>(CblasNoTrans, N_, K_,
-                                    (Dtype)1., reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
-                                    col_diff + col_offset * g, (Dtype)1.,
+                                    (Dtype)1., col_diff + col_offset * g,
+                                    reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()), (Dtype)1.,
                                     bias_diff);
           }
       }

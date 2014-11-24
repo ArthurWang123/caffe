@@ -166,7 +166,7 @@ void DeConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
               caffe_cpu_gemv<Dtype>(CblasNoTrans, N_, K_,
                                     1., col_diff + col_offset * g,
                                     reinterpret_cast<const Dtype*>(bias_multiplier_->cpu_data()), 1.,
-                                bias_diff);
+                                    bias_diff);
           }
       }
       if (propagate_down) {
