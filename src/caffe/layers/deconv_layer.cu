@@ -31,12 +31,12 @@ Dtype DeConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
           (Dtype)1., weight + weight_offset * g,
           bottom_data + bottom[0]->offset(n) + bottom_offset * g,
           (Dtype)0., col_data + col_offset * g);
+        // bias - TODO
+        caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, N_, K_, 1,
+                              (Dtype)1., this->blobs_[1]->gpu_data(),
+                              reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
+                              (Dtype)1., col_data + col_offset * g);
       }
-      // bias - TODO
-//       caffe_gpu_gemm<Dtype>(CblasTrans, CblasNoTrans, 1, N_, num_output_,
-//           (Dtype)1., this->blobs_[1]->gpu_data(),
-//           reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
-//           (Dtype)1., col_data);
       // col2im forward to the top_data
       col2im_gpu(col_data, channels_, height_out_, width_out_, kernel_size_, pad_,
                  stride_, top_data + (*top)[0]->offset(n));
@@ -60,21 +60,13 @@ void DeConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   Dtype* bottom_diff = (*bottom)[0]->mutable_gpu_diff();
   Dtype* col_data = col_buffer_.mutable_gpu_data();
   Dtype* col_diff = col_buffer_.mutable_gpu_diff();
-
-  // JTS TODO: we might want to add another bias term
- /* 
+  Dtype* bias_diff = NULL;
   if (bias_term_) {
     bias_diff = this->blobs_[1]->mutable_gpu_diff();
     CUDA_CHECK(cudaMemset(bias_diff, 0,
         sizeof(Dtype) * this->blobs_[1]->count()));
-    for (int n = 0; n < num_; ++n) {
-      caffe_gpu_gemv<Dtype>(CblasNoTrans, num_output_, N_,
-          (Dtype)1., reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
-          col_diff, (Dtype)1.,
-          bias_diff);
-    }
   }
-                  */
+
   int weight_offset = M_ * K_;
   int col_offset = K_ * N_;
   int bottom_offset = M_ * N_;
@@ -89,6 +81,13 @@ void DeConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
                                 (Dtype)1., bottom_data + (*bottom)[0]->offset(n) + bottom_offset * g,
                                 col_diff + col_offset * g, (Dtype)1.,
                                 weight_diff + weight_offset * g);
+          // gradient wrt. bias
+          if (bias_term_) {
+              caffe_gpu_gemv<Dtype>(CblasNoTrans, N_, K_,
+                                    (Dtype)1., reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
+                                    col_diff + col_offset * g, (Dtype)1.,
+                                    bias_diff);
+          }
       }
       if (propagate_down) {
           for (int g = 0; g < group_; ++g) {

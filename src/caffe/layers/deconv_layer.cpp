@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <iostream>
 #include "caffe/layer.hpp"
 #include "caffe/vision_layers.hpp"
 #include "caffe/util/im2col.hpp"
@@ -67,7 +68,7 @@ void DeConvolutionLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
     //std::cout << "wcount " << this->blobs_[0]->count() << std::endl;
     // If necessary, intiialize and fill the bias term
     if (bias_term_) {
-      this->blobs_[1].reset(new Blob<Dtype>(1, 1, 1, inverse_num_out));
+      this->blobs_[1].reset(new Blob<Dtype>(1, 1, 1, N_));
       shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
           this->layer_param_.deconvolution_param().bias_filler()));
       bias_filler->Fill(this->blobs_[1].get());
@@ -75,15 +76,14 @@ void DeConvolutionLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   }
   // Set up the bias filler
   if (bias_term_) {
-    bias_multiplier_.reset(new SyncedMemory(N_ * sizeof(Dtype)));
+    bias_multiplier_.reset(new SyncedMemory(K_ * sizeof(Dtype)));
     Dtype* bias_multiplier_data =
         reinterpret_cast<Dtype*>(bias_multiplier_->mutable_cpu_data());
-    for (int i = 0; i < N_; ++i) {
+    for (int i = 0; i < K_; ++i) {
         bias_multiplier_data[i] = 1.;
     }
   }
 }
-
 
 template <typename Dtype>
 Dtype DeConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
@@ -108,17 +108,27 @@ Dtype DeConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           (Dtype)1., weight + weight_offset * g,
           bottom_data + bottom[0]->offset(n) + bottom_offset * g,
           (Dtype)0., col_data + col_offset * g);
+        // add bias
+        if (bias_term_) {
+            caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, N_,
+                                  K_, 1, (Dtype)1., this->blobs_[1]->cpu_data(),
+                                  reinterpret_cast<const Dtype*>(bias_multiplier_->cpu_data()),
+                                  (Dtype)1., col_data + col_offset * g);
+        }
       }
       // col2im forward to the top_data
       col2im_cpu(col_data, channels_, height_out_, width_out_, kernel_size_, pad_,
                  stride_, top_data + (*top)[0]->offset(n));
+      std::cout << col_buffer_.count() << " " << col_buffer_.channels() << std::endl;
+      // Debugging stuff
+      /*
+      for (int k = 0; k < col_buffer_.count(); ++k) {
+          std::cout << col_buffer_.cpu_data()[k] <<  "  "; 
+      }
+      std::cout << std::endl;
+      */
   }
-  /* Debugging stuff
-  for (int n = 0; n < col_buffer_.count(); ++n) {
-      std::cout << col_buffer_.cpu_data()[n] <<  "  "; 
-  }
-  std::cout << std::endl;
-  */
+  
   return Dtype(0.);
 }
 
@@ -132,7 +142,11 @@ void DeConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   Dtype* bottom_diff = (*bottom)[0]->mutable_cpu_diff();
   Dtype* col_data = col_buffer_.mutable_cpu_data();
   Dtype* col_diff = col_buffer_.mutable_cpu_diff();
-
+  Dtype* bias_diff = NULL;
+  if (bias_term_) {
+      bias_diff = this->blobs_[1]->mutable_cpu_diff();
+      memset(bias_diff, 0, sizeof(Dtype) * this->blobs_[1]->count());
+  }
   // JTS TODO: we might want to add another bias term
 
   int weight_offset = M_ * K_;
@@ -148,6 +162,13 @@ void DeConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
                                 (Dtype)1., bottom_data + (*bottom)[0]->offset(n) + bottom_offset * g,
                                 col_diff + col_offset * g, (Dtype)1.,
                                 weight_diff + weight_offset * g);
+          // gradient wrt. bias
+          if (bias_term_) {
+              caffe_cpu_gemv<Dtype>(CblasNoTrans, N_, K_,
+                                    1., col_diff + col_offset * g,
+                                    reinterpret_cast<const Dtype*>(bias_multiplier_->cpu_data()), 1.,
+                                bias_diff);
+          }
       }
       if (propagate_down) {
           for (int g = 0; g < group_; ++g) {
