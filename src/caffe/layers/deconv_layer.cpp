@@ -134,7 +134,7 @@ Dtype DeConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 template <typename Dtype>
 void DeConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const bool propagate_down, vector<Blob<Dtype>*>* bottom) {
-      const Dtype* top_diff = top[0]->cpu_diff();
+  const Dtype* top_diff = top[0]->cpu_diff();
   const Dtype* weight = this->blobs_[0]->cpu_data();
   Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();
   const Dtype* bottom_data = (*bottom)[0]->cpu_data();

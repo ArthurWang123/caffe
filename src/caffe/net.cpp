@@ -404,8 +404,10 @@ void Net<Dtype>::CopyTrainedLayersFrom(const NetParameter& param) {
     vector<shared_ptr<Blob<Dtype> > >& target_blobs =
         layers_[target_layer_id]->blobs();
     CHECK_EQ(target_blobs.size(), source_layer.blobs_size())
-        << "Incompatible number of blobs for layer " << source_layer_name;
+        << "Incompatible number of blobs for layer " << source_layer_name;    
     for (int j = 0; j < target_blobs.size(); ++j) {
+      LOG(INFO) << "blob " << target_blobs[j]->num() << "x" << target_blobs[j]->channels() <<
+        "x" << target_blobs[j]->height() << "x" << target_blobs[j]->width();
       CHECK_EQ(target_blobs[j]->num(), source_layer.blobs(j).num());
       CHECK_EQ(target_blobs[j]->channels(), source_layer.blobs(j).channels());
       CHECK_EQ(target_blobs[j]->height(), source_layer.blobs(j).height());

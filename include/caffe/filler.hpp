@@ -175,6 +175,23 @@ class XavierFiller : public Filler<Dtype> {
   }
 };
 
+// Like Xavier, but Gaussian
+template <typename Dtype>
+class GaussianXavierFiller : public Filler<Dtype> {
+ public:
+  explicit GaussianXavierFiller(const FillerParameter& param)
+      : Filler<Dtype>(param) {}
+  virtual void Fill(Blob<Dtype>* blob) {
+    CHECK(blob->count());
+    int fan_in = blob->count() / blob->num();
+    Dtype scale = sqrt(Dtype(this->filler_param_.xavier_coeff()) / fan_in);
+    caffe_rng_gaussian<Dtype>(blob->count(), 0, scale,
+        blob->mutable_cpu_data());
+    CHECK_EQ(this->filler_param_.sparse(), -1)
+         << "Sparsity not supported by this Filler.";
+  }
+};
+
 
 // A function to get a specific filler from the specification given in
 // FillerParameter. Ideally this would be replaced by a factory pattern,
@@ -194,6 +211,8 @@ Filler<Dtype>* GetFiller(const FillerParameter& param) {
     return new XavierFiller<Dtype>(param);
   } else if (type == "diag") {
     return new DiagFiller<Dtype>(param);
+  } else if (type == "gaussian_xavier") {
+    return new GaussianXavierFiller<Dtype>(param);    
   } else {
     CHECK(false) << "Unknown filler name: " << param.type();
   }
