@@ -94,16 +94,16 @@ Dtype DeConvolutionOrthLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bot
         caffe_gpu_gemm<Dtype>(CblasTrans, CblasNoTrans, K_, N_, M_,
           (Dtype)1., weight + weight_offset * g,
           bottom_data + bottom[0]->offset(n) + bottom_offset * g,
-          (Dtype)0., col_data + col_offset * g);        
-        // bias - TODO
-        caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, N_, K_, 1,
-                              (Dtype)1., this->blobs_[1]->gpu_data(),
-                              reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
-                              (Dtype)1., col_data + col_offset * g);
+          (Dtype)0., col_data + col_offset * g);
       }
       // col2im forward to the top_data
       col2im_gpu(col_data, channels_, height_out_, width_out_, kernel_size_, pad_,
                  stride_, top_data + (*top)[0]->offset(n));
+      // JTS: new way of adding the bias
+      caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num_output_, N_, 1,
+                            (Dtype)1., this->blobs_[1]->gpu_data(),
+                            reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),
+                            (Dtype)1., top_data + (*top)[0]->offset(n));
   }
   /* Debugging stuff
   for (int n = 0; n < col_buffer_.count(); ++n) {
@@ -129,6 +129,13 @@ void DeConvolutionOrthLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top
     bias_diff = this->blobs_[1]->mutable_gpu_diff();
     CUDA_CHECK(cudaMemset(bias_diff, 0,
         sizeof(Dtype) * this->blobs_[1]->count()));
+    //JTS fixed gradient wrt. bias, not sure about the group stuff ...
+    for (int n = 0; n < num_; ++n) {
+        caffe_gpu_gemv<Dtype>(CblasNoTrans, num_output_, N_,
+                              (Dtype)1., top_diff + top[0]->offset(n),
+                              reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()), (Dtype)1.,
+                              bias_diff);
+    }
   }
 
   int weight_offset = M_ * K_;
@@ -145,13 +152,6 @@ void DeConvolutionOrthLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top
                                 (Dtype)1., bottom_data + (*bottom)[0]->offset(n) + bottom_offset * g,
                                 col_diff + col_offset * g, (Dtype)1.,
                                 weight_diff + weight_offset * g);
-          // gradient wrt. bias
-          if (bias_term_) {
-              caffe_gpu_gemv<Dtype>(CblasNoTrans, N_, K_,
-                                    (Dtype)1., col_diff + col_offset * g, 
-                                    reinterpret_cast<const Dtype*>(bias_multiplier_->gpu_data()),(Dtype)1.,
-                                    bias_diff);
-          }    
       }
       if (propagate_down) {
           for (int g = 0; g < group_; ++g) {

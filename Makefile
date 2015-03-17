@@ -1,6 +1,5 @@
 # The makefile for caffe. Pretty hacky.
 PROJECT := caffe
-TEST_GPUID := 0
 
 CONFIG_FILE := Makefile.config
 include $(CONFIG_FILE)
@@ -168,7 +167,7 @@ else ifeq ($(UNAME), Darwin)
 endif
 
 ifeq ($(LINUX), 1)
-	CXX := /usr/bin/g++
+	CXX := /usr/bin/g++-4.4
 endif
 
 # OS X:
@@ -194,7 +193,7 @@ ifeq ($(BLAS), mkl)
 	# MKL
 	LIBRARIES += mkl_rt
 	COMMON_FLAGS += -DUSE_MKL
-	#MKL_DIR = /opt/intel/mkl
+	MKL_DIR = /opt/intel/mkl
 	BLAS_INCLUDE ?= $(MKL_DIR)/include
 	BLAS_LIB ?= $(MKL_DIR)/lib $(MKL_DIR)/lib/intel64
 else ifeq ($(BLAS), open)
@@ -219,9 +218,9 @@ LIBRARY_DIRS += $(BLAS_LIB)
 
 # Complete build flags.
 COMMON_FLAGS += $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
-CXXFLAGS += -pthread -fPIC -fopenmp $(COMMON_FLAGS)
-NVCCFLAGS := -ccbin=$(CXX) -Xcompiler -fPIC $(COMMON_FLAGS)
-LDFLAGS += -fopenmp $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
+CXXFLAGS += -pthread -fPIC $(COMMON_FLAGS)
+NVCCFLAGS := -ccbin=$(CXX) -Xcompiler -fPIC $(COMMON_FLAGS) -DBOOST_NOINLINE='__attribute__ ((noinline))'
+LDFLAGS += $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
 		$(foreach library,$(LIBRARIES),-l$(library))
 PYTHON_LDFLAGS := $(LDFLAGS) $(foreach library,$(PYTHON_LIBRARIES),-l$(library))
 
