@@ -1,0 +1,23 @@
+# Alexey Dosovitskiy, 2015 
+
+This version of caffe should work for training models described in "Learning to Generate Chairs with Convolutional Neural Networks". The main modifications are: 
+- Deconvolutional layer (which is actually unpooling + convolution), 
+- DataAugmentation layer, 
+- ***Orth layers which orthogonalize weights and can be used to get initializations like described by Saxe et al. (although I suspect that it may not be exactly the same, up to weight matrix being transposed),
+- gaussian_xavier initialization, which performs initialization similar to what is proposed in couple of recent papers by Susillo et al. and He et al.
+
+There are also many other changes, which are not very relevant for the "chair generation" network. The code should not require any extra dependencies other than what caffe usually needs.
+
+Model configuration files can be found in examples/chairs/ . 
+
+In used_in_paper subfolder there are the configuration files and trained networks from the paper. The training was a 3-stage process: 
+1) train a netowrk to generate 64x64 chairs, 
+2) add an extra deconvolutional layer to get 128x128 outputs and train a bit with small learning rate to let the network adapt to new architecture and avoid huge gradients destroying everything 
+3) train for some time with 128x128 outputs and higher learning rate
+There are config files for all three stages, as well as networks obtained from stages 1 and 3.
+
+There is no fundamental reason why a network generating 128x128 images would not train from scratch. We experimented a bit with initializations (including ones recently proposed in the literature) and found out that indeed the net can train from scratch, yielding results quite similar to what we had in the paper. This configuration file is in the new_version subfolder. Some tuning may further improve it, for example a different optimization method may work better than SGD. It also probably would be better to use sigmoid and log-loss to predict the segmentation mask.
+
+In used_in_paper/matlab_scripts there is a generate_pics.m script, which we used to make figures for the paper. Not all parts of it may perfectly work out of the box, use at your own risk!
+
+Data for training the networks can be downloaded at http://lmb.informatik.uni-freiburg.de/resources/datasets/GenerateChairs.en.html .
