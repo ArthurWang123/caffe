@@ -1,0 +1,17 @@
+train_net: "2_128x128_train_1.prototxt"
+
+lr_policy: "arbitrary_steps"
+step_lr: 0.00001
+
+display: 10
+max_iter: 100
+momentum: 0.9
+weight_decay: 0.00
+snapshot: 100
+snapshot_prefix: "chairs_2_128x128"
+termination_criterion: MAX_ITER
+device_id: 0
+snapshot_on_exit: 1
+
+load_weights_from: "chairs_1_64x64_iter_300000"
+

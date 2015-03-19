@@ -1,0 +1,745 @@
+input: "onehot_in"
+input_dim: 64
+input_dim: 843
+input_dim: 1
+input_dim: 1
+input: "angles_in"
+input_dim: 64
+input_dim: 4
+input_dim: 1
+input_dim: 1
+input: "aug_params_in"
+input_dim: 64
+input_dim: 28
+input_dim: 1
+input_dim: 1
+
+layers {
+  name: "fc1_label"
+  type: INNER_PRODUCT_ORTH
+  bottom: "onehot_in"
+  top: "fc1_label"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu1_label"
+  type: RELU
+  bottom: "fc1_label"
+  top: "fc1_label"
+}
+layers {
+  name: "fc2_label"
+  type: INNER_PRODUCT_ORTH
+  bottom: "fc1_label"
+  top: "fc2_label"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu2_label"
+  type: RELU
+  bottom: "fc2_label"
+  top: "fc2_label"
+}
+layers {
+  name: "fc1_angles"
+  type: INNER_PRODUCT_ORTH
+  bottom: "angles_in"
+  top: "fc1_angles"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu1_angles"
+  type: RELU
+  bottom: "fc1_angles"
+  top: "fc1_angles"
+}
+layers {
+  name: "fc2_angles"
+  type: INNER_PRODUCT_ORTH
+  bottom: "fc1_angles"
+  top: "fc2_angles"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu2_angles"
+  type: RELU
+  bottom: "fc2_angles"
+  top: "fc2_angles"
+}
+layers {
+  name: "fc1_aug_params"
+  type: INNER_PRODUCT_ORTH
+  bottom: "aug_params_in"
+  top: "fc1_aug_params"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu1_aug_params"
+  type: RELU
+  bottom: "fc1_aug_params"
+  top: "fc1_aug_params"
+}
+layers {
+  name: "fc2_aug_params"
+  type: INNER_PRODUCT_ORTH
+  bottom: "fc1_aug_params"
+  top: "fc2_aug_params"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu2_aug_params"
+  type: RELU
+  bottom: "fc2_aug_params"
+  top: "fc2_aug_params"
+}
+layers {
+  name: "concat"
+  type: CONCAT
+  bottom: "fc2_label"
+  bottom: "fc2_angles"
+  bottom: "fc2_aug_params"
+  top: "fc2"
+  concat_param {
+    concat_dim: 1
+  }
+}
+layers {
+  name: "fc3"
+  type: INNER_PRODUCT_ORTH
+  bottom: "fc2"
+  top: "fc3"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 1024
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu3"
+  type: RELU
+  bottom: "fc3"
+  top: "fc3"
+}
+layers {
+  name: "fc4"
+  type: INNER_PRODUCT_ORTH
+  bottom: "fc3"
+  top: "fc4"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 1024
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu4"
+  type: RELU
+  bottom: "fc4"
+  top: "fc4"
+}
+layers {
+  name: "fc5"
+  type: INNER_PRODUCT_ORTH
+  bottom: "fc4"
+  top: "fc5"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 16384
+    weight_filler {
+      type: "gaussian"
+      std: 0.0005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu5"
+  type: RELU
+  bottom: "fc5"
+  top: "fc5"
+}
+layers {
+  name: "reshape"
+  type: RESHAPE
+  bottom: "fc5"
+  top: "fc5_reshape"
+  reshape_param {
+    channels: 256
+    height: 8
+    width: 8
+  }
+}
+layers {
+  name: "deconv6"           
+  type: DECONVOLUTION_ORTH
+  bottom: "fc5_reshape"
+  top: "deconv6"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 256
+    output_height: 16 
+    output_width: 16
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu6"
+  type: RELU
+  bottom: "deconv6"
+  top: "deconv6"
+}
+layers {
+  name: "deconv7"           
+  type: DECONVOLUTION_ORTH
+  bottom: "deconv6"
+  top: "deconv7"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 92
+    output_height: 32 
+    output_width: 32
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu7"
+  type: RELU
+  bottom: "deconv7"
+  top: "deconv7"
+}
+layers {
+  name: "deconv8_new"           
+  type: DECONVOLUTION_ORTH
+  bottom: "deconv7"
+  top: "deconv8"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 92
+    output_height: 64 
+    output_width: 64
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.001
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu8"
+  type: RELU
+  bottom: "deconv8"
+  top: "deconv8"
+}
+layers {
+  name: "deconv9_new"           
+  type: DECONVOLUTION_ORTH
+  bottom: "deconv8"
+  top: "deconv9"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 3
+    output_height: 128 
+    output_width: 128
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "fc5_segm"
+  type: INNER_PRODUCT_ORTH
+  bottom: "fc4"
+  top: "fc5_segm"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0. 
+  inner_product_param {
+    num_output: 8192
+    weight_filler {
+      type: "gaussian"
+      std: 0.0005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu5_segm"
+  type: RELU
+  bottom: "fc5_segm"
+  top: "fc5_segm"
+}
+layers {
+  name: "reshape"
+  type: RESHAPE
+  bottom: "fc5_segm"
+  top: "fc5_segm_reshape"
+  reshape_param {
+    channels: 128
+    height: 8
+    width: 8
+  }
+}
+layers {
+  name: "deconv6_segm"           
+  type: DECONVOLUTION_ORTH
+  bottom: "fc5_segm_reshape"
+  top: "deconv6_segm"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 92
+    output_height: 16 
+    output_width: 16
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu6_segm"
+  type: RELU
+  bottom: "deconv6_segm"
+  top: "deconv6_segm"
+}
+layers {
+  name: "deconv7_segm"           
+  type: DECONVOLUTION_ORTH
+  bottom: "deconv6_segm"
+  top: "deconv7_segm"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 32
+    output_height: 32 
+    output_width: 32
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: ESMAEILI
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu7_segm"
+  type: RELU
+  bottom: "deconv7_segm"
+  top: "deconv7_segm"
+}
+layers {
+  name: "deconv8_segm_new"           
+  type: DECONVOLUTION_ORTH
+  bottom: "deconv7_segm"
+  top: "deconv8_segm"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 32
+    output_height: 64 
+    output_width: 64
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.001
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  name: "relu8_segm"
+  type: RELU
+  bottom: "deconv8_segm"
+  top: "deconv8_segm"
+}
+layers {
+  name: "deconv9_segm_new"           
+  type: DECONVOLUTION_ORTH
+  bottom: "deconv8_segm"
+  top: "deconv9_segm"
+  blobs_lr: 1.
+  blobs_lr: 2.
+  weight_decay: 0.
+  weight_decay: 0.
+  deconvolution_param {
+    output_channels: 3
+    output_height: 128 
+    output_width: 128
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+# layers {
+#   name: "eltwise"
+#   type: ELTWISE
+#   bottom: "data_aug"
+#   bottom: "segm_aug"
+#   top: "segm_data_aug"
+#   eltwise_param {
+#     operation: PROD
+#   }  
+# } 
+# layers {
+#   name: "dummy_loss3"
+#   type: EUCLIDEAN_LOSS
+#   bottom: "labels"
+#   bottom: "labels"
+# }

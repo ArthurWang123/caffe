@@ -1,0 +1,1278 @@
+I1020 19:51:30.994525 51319 train_net.cpp:26] Starting Optimization
+I1020 19:51:30.994709 51319 solver.cpp:39] Initializing solver from parameters: 
+train_net: "/home/dosovits/MATLAB/toolboxes/caffe/nets/generate_chairs_big_augparams_largenet_1/train0.prototxt"
+display: 10
+max_iter: 1000
+lr_policy: "arbitrary_steps"
+momentum: 0.9
+weight_decay: 0
+snapshot: 100
+snapshot_prefix: "generate_chairs"
+device_id: 0
+termination_criterion: MAX_ITER
+snapshot_on_exit: 1
+load_weights_from: "/misc/lmbraid10/dosovits/Caffe/Saved/generate_chairs_med_augparams_largenet_1_1/generate_chairs_iter_300000"
+step_lr: 1e-05
+I1020 19:51:32.702852 51319 solver.cpp:59] Creating training net from file: /home/dosovits/MATLAB/toolboxes/caffe/nets/generate_chairs_big_augparams_largenet_1/train0.prototxt
+I1020 19:51:32.706603 51319 net.cpp:36] Initializing net from parameters: 
+name: "CaffeNet"
+layers {
+  top: "data"
+  top: "label"
+  name: "data"
+  type: DATA
+  data_param {
+    source: "/misc/lmbraid10/dosovits/Caffe/Data/chairs_128x128_reduced/data-lmdb"
+    scale: 0.00390625
+    batch_size: 128
+    backend: LMDB
+  }
+}
+layers {
+  bottom: "data"
+  top: "data_aug"
+  top: "aug_params"
+  name: "data_aug"
+  type: DATA_AUGMENTATION
+  augmentation_param {
+    crop_size: 128
+    max_multiplier: 1
+    recompute_mean: 0
+  }
+  coeff_schedule_param {
+    gamma: 1e-05
+    initial_coeff: 0
+    final_coeff: 0
+  }
+}
+layers {
+  top: "segm"
+  top: "label1"
+  name: "segm"
+  type: DATA
+  data_param {
+    source: "/misc/lmbraid10/dosovits/Caffe/Data/chairs_segm_128x128_reduced/data-lmdb"
+    scale: 0.00390625
+    batch_size: 128
+    backend: LMDB
+  }
+}
+layers {
+  bottom: "segm"
+  bottom: "aug_params"
+  top: "segm_aug"
+  name: "segm_aug"
+  type: DATA_AUGMENTATION
+  augmentation_param {
+    crop_size: 128
+    max_multiplier: 1
+    recompute_mean: 0
+  }
+}
+layers {
+  top: "angles"
+  top: "labels"
+  name: "angles"
+  type: HDF5_DATA
+  hdf5_data_param {
+    source: "/misc/lmbraid10/dosovits/Caffe/Data/chairs/angles_reduced_shuffle.txt"
+    batch_size: 128
+  }
+}
+layers {
+  bottom: "label"
+  top: "onehot"
+  name: "label_to_onehot"
+  type: LABEL_TO_ONEHOT
+  inner_product_param {
+    num_output: 843
+  }
+}
+layers {
+  bottom: "onehot"
+  top: "fc1_label"
+  name: "fc1_label"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc1_label"
+  top: "fc1_label"
+  name: "relu1_label"
+  type: RELU
+}
+layers {
+  bottom: "fc1_label"
+  top: "fc2_label"
+  name: "fc2_label"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc2_label"
+  top: "fc2_label"
+  name: "relu2_label"
+  type: RELU
+}
+layers {
+  bottom: "angles"
+  top: "fc1_angles"
+  name: "fc1_angles"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc1_angles"
+  top: "fc1_angles"
+  name: "relu1_angles"
+  type: RELU
+}
+layers {
+  bottom: "fc1_angles"
+  top: "fc2_angles"
+  name: "fc2_angles"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc2_angles"
+  top: "fc2_angles"
+  name: "relu2_angles"
+  type: RELU
+}
+layers {
+  bottom: "aug_params"
+  top: "fc1_aug_params"
+  name: "fc1_aug_params"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc1_aug_params"
+  top: "fc1_aug_params"
+  name: "relu1_aug_params"
+  type: RELU
+}
+layers {
+  bottom: "fc1_aug_params"
+  top: "fc2_aug_params"
+  name: "fc2_aug_params"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc2_aug_params"
+  top: "fc2_aug_params"
+  name: "relu2_aug_params"
+  type: RELU
+}
+layers {
+  bottom: "fc2_label"
+  bottom: "fc2_angles"
+  bottom: "fc2_aug_params"
+  top: "fc2"
+  name: "concat"
+  type: CONCAT
+  concat_param {
+    concat_dim: 1
+  }
+}
+layers {
+  bottom: "fc2"
+  top: "fc3"
+  name: "fc3"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 1024
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc3"
+  top: "fc3"
+  name: "relu3"
+  type: RELU
+}
+layers {
+  bottom: "fc3"
+  top: "fc4"
+  name: "fc4"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 1024
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc4"
+  top: "fc4"
+  name: "relu4"
+  type: RELU
+}
+layers {
+  bottom: "fc4"
+  top: "fc5"
+  name: "fc5"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 16384
+    weight_filler {
+      type: "gaussian"
+      std: 0.0005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc5"
+  top: "fc5"
+  name: "relu5"
+  type: RELU
+}
+layers {
+  bottom: "fc5"
+  top: "fc5_reshape"
+  name: "reshape"
+  type: RESHAPE
+  reshape_param {
+    channels: 256
+    height: 8
+    width: 8
+  }
+}
+layers {
+  bottom: "fc5_reshape"
+  top: "deconv6"
+  name: "deconv6"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.01
+    }
+    output_height: 16
+    output_width: 16
+    output_channels: 256
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "deconv6"
+  top: "deconv6"
+  name: "relu6"
+  type: RELU
+}
+layers {
+  bottom: "deconv6"
+  top: "deconv7"
+  name: "deconv7"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.01
+    }
+    output_height: 32
+    output_width: 32
+    output_channels: 92
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "deconv7"
+  top: "deconv7"
+  name: "relu7"
+  type: RELU
+}
+layers {
+  bottom: "deconv7"
+  top: "deconv8"
+  name: "deconv8_new"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.001
+    }
+    output_height: 64
+    output_width: 64
+    output_channels: 92
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "deconv8"
+  top: "deconv8"
+  name: "relu8"
+  type: RELU
+}
+layers {
+  bottom: "deconv8"
+  top: "deconv9"
+  name: "deconv9_new"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+    output_height: 128
+    output_width: 128
+    output_channels: 3
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc4"
+  top: "fc5_segm"
+  name: "fc5_segm"
+  type: INNER_PRODUCT_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  inner_product_param {
+    num_output: 8192
+    weight_filler {
+      type: "gaussian"
+      std: 0.0005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.001
+    esmaeili_coeff: 0.55
+    col_norm: 1
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "fc5_segm"
+  top: "fc5_segm"
+  name: "relu5_segm"
+  type: RELU
+}
+layers {
+  bottom: "fc5_segm"
+  top: "fc5_segm_reshape"
+  name: "reshape"
+  type: RESHAPE
+  reshape_param {
+    channels: 128
+    height: 8
+    width: 8
+  }
+}
+layers {
+  bottom: "fc5_segm_reshape"
+  top: "deconv6_segm"
+  name: "deconv6_segm"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.01
+    }
+    output_height: 16
+    output_width: 16
+    output_channels: 92
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "deconv6_segm"
+  top: "deconv6_segm"
+  name: "relu6_segm"
+  type: RELU
+}
+layers {
+  bottom: "deconv6_segm"
+  top: "deconv7_segm"
+  name: "deconv7_segm"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 0
+  blobs_lr: 0
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.01
+    }
+    output_height: 32
+    output_width: 32
+    output_channels: 32
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "deconv7_segm"
+  top: "deconv7_segm"
+  name: "relu7_segm"
+  type: RELU
+}
+layers {
+  bottom: "deconv7_segm"
+  top: "deconv8_segm"
+  name: "deconv8_segm_new"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.001
+    }
+    output_height: 64
+    output_width: 64
+    output_channels: 32
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "deconv8_segm"
+  top: "deconv8_segm"
+  name: "relu8_segm"
+  type: RELU
+}
+layers {
+  bottom: "deconv8_segm"
+  top: "deconv9_segm"
+  name: "deconv9_segm_new"
+  type: DECONVOLUTION_ORTH
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 0
+  weight_decay: 0
+  deconvolution_param {
+    pad: 2
+    kernel_size: 5
+    stride: 2
+    weight_filler {
+      type: "gaussian"
+      mean: 0.001
+      std: 0.0001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+    output_height: 128
+    output_width: 128
+    output_channels: 3
+  }
+  orth_param {
+    orth_method: NONE
+    step: 10
+    max_num_iter: 30
+    eps: 0.0001
+    esmaeili_coeff: 0.55
+    col_norm: 0.01
+    orth_before_iter: 2
+  }
+}
+layers {
+  bottom: "data"
+  bottom: "segm"
+  top: "segm_data"
+  name: "eltwise"
+  type: ELTWISE
+  eltwise_param {
+    operation: PROD
+  }
+}
+layers {
+  bottom: "deconv9"
+  bottom: "segm_data"
+  name: "recon_data"
+  type: EUCLIDEAN_LOSS
+  loss_param {
+    coeff: 10
+  }
+}
+layers {
+  bottom: "deconv9_segm"
+  bottom: "segm"
+  name: "recon_segm"
+  type: EUCLIDEAN_LOSS
+  loss_param {
+    coeff: 1
+  }
+}
+I1020 19:51:32.706955 51319 net.cpp:65] Creating Layer data
+I1020 19:51:32.706972 51319 net.cpp:185] data -> data
+I1020 19:51:32.707002 51319 net.cpp:185] data -> label
+I1020 19:51:32.737656 51319 data_layer.cpp:223] Opening lmdb /misc/lmbraid10/dosovits/Caffe/Data/chairs_128x128_reduced/data-lmdb
+I1020 19:51:32.737757 51319 data_layer.cpp:285] output data size: 128,3,128,128
+I1020 19:51:32.754643 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.754660 51319 net.cpp:82] Top shape: 128 1 1 1 (128)
+I1020 19:51:32.754668 51319 net.cpp:112] data does not need backward computation.
+I1020 19:51:32.754679 51319 net.cpp:65] Creating Layer data_data_0_split
+I1020 19:51:32.754689 51319 net.cpp:224] data_data_0_split <- data
+I1020 19:51:32.754703 51319 net.cpp:175] data_data_0_split -> data (in-place)
+I1020 19:51:32.754717 51319 net.cpp:185] data_data_0_split -> data_data_0_split_1
+I1020 19:51:32.754734 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.754744 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.754750 51319 net.cpp:112] data_data_0_split does not need backward computation.
+I1020 19:51:32.754760 51319 net.cpp:65] Creating Layer data_aug
+I1020 19:51:32.754768 51319 net.cpp:224] data_aug <- data
+I1020 19:51:32.754777 51319 net.cpp:185] data_aug -> data_aug
+I1020 19:51:32.754791 51319 net.cpp:185] data_aug -> aug_params
+I1020 19:51:32.754806 51319 data_augmentation_layer.cpp:184] Writing 28 augmentation params
+I1020 19:51:32.754814 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.754822 51319 net.cpp:82] Top shape: 128 28 1 1 (3584)
+I1020 19:51:32.754828 51319 net.cpp:112] data_aug does not need backward computation.
+I1020 19:51:32.754837 51319 net.cpp:65] Creating Layer aug_params_data_aug_1_split
+I1020 19:51:32.754844 51319 net.cpp:224] aug_params_data_aug_1_split <- aug_params
+I1020 19:51:32.754853 51319 net.cpp:175] aug_params_data_aug_1_split -> aug_params (in-place)
+I1020 19:51:32.754863 51319 net.cpp:185] aug_params_data_aug_1_split -> aug_params_data_aug_1_split_1
+I1020 19:51:32.754874 51319 net.cpp:82] Top shape: 128 28 1 1 (3584)
+I1020 19:51:32.754881 51319 net.cpp:82] Top shape: 128 28 1 1 (3584)
+I1020 19:51:32.754894 51319 net.cpp:112] aug_params_data_aug_1_split does not need backward computation.
+I1020 19:51:32.754904 51319 net.cpp:65] Creating Layer segm
+I1020 19:51:32.754912 51319 net.cpp:185] segm -> segm
+I1020 19:51:32.754925 51319 net.cpp:185] segm -> label1
+I1020 19:51:32.758126 51319 data_layer.cpp:223] Opening lmdb /misc/lmbraid10/dosovits/Caffe/Data/chairs_segm_128x128_reduced/data-lmdb
+I1020 19:51:32.758211 51319 data_layer.cpp:285] output data size: 128,3,128,128
+I1020 19:51:32.768404 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.768426 51319 net.cpp:82] Top shape: 128 1 1 1 (128)
+I1020 19:51:32.768430 51319 net.cpp:112] segm does not need backward computation.
+I1020 19:51:32.768440 51319 net.cpp:65] Creating Layer segm_segm_0_split
+I1020 19:51:32.768445 51319 net.cpp:224] segm_segm_0_split <- segm
+I1020 19:51:32.768451 51319 net.cpp:175] segm_segm_0_split -> segm (in-place)
+I1020 19:51:32.768461 51319 net.cpp:185] segm_segm_0_split -> segm_segm_0_split_1
+I1020 19:51:32.768470 51319 net.cpp:185] segm_segm_0_split -> segm_segm_0_split_2
+I1020 19:51:32.768477 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.768481 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.768484 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.768488 51319 net.cpp:112] segm_segm_0_split does not need backward computation.
+I1020 19:51:32.768494 51319 net.cpp:65] Creating Layer segm_aug
+I1020 19:51:32.768498 51319 net.cpp:224] segm_aug <- segm
+I1020 19:51:32.768503 51319 net.cpp:224] segm_aug <- aug_params
+I1020 19:51:32.768508 51319 net.cpp:185] segm_aug -> segm_aug
+I1020 19:51:32.768517 51319 data_augmentation_layer.cpp:190] Reading 28 augmentation params
+I1020 19:51:32.768522 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:32.768525 51319 net.cpp:112] segm_aug does not need backward computation.
+I1020 19:51:32.768530 51319 net.cpp:65] Creating Layer angles
+I1020 19:51:32.768534 51319 net.cpp:185] angles -> angles
+I1020 19:51:32.768540 51319 net.cpp:185] angles -> labels
+I1020 19:51:32.768549 51319 hdf5_data_layer.cpp:70] Loading filename from /misc/lmbraid10/dosovits/Caffe/Data/chairs/angles_reduced_shuffle.txt
+I1020 19:51:32.769093 51319 hdf5_data_layer.cpp:82] Number of files: 1
+I1020 19:51:32.769107 51319 hdf5_data_layer.cpp:38] Loading HDF5 file/misc/lmbraid10/dosovits/Caffe/Data/chairs/angles_reduced_shuffle.h5
+I1020 19:51:32.773967 51319 hdf5_data_layer.cpp:57] Successully loaded 52266 rows
+I1020 19:51:32.773993 51319 hdf5_data_layer.cpp:114] output data size: 128,4,1,1
+I1020 19:51:32.774000 51319 net.cpp:82] Top shape: 128 4 1 1 (512)
+I1020 19:51:32.774004 51319 net.cpp:82] Top shape: 128 1 1 1 (128)
+I1020 19:51:32.774008 51319 net.cpp:112] angles does not need backward computation.
+I1020 19:51:32.774020 51319 net.cpp:65] Creating Layer label_to_onehot
+I1020 19:51:32.774025 51319 net.cpp:224] label_to_onehot <- label
+I1020 19:51:32.774032 51319 net.cpp:185] label_to_onehot -> onehot
+I1020 19:51:32.774046 51319 net.cpp:82] Top shape: 128 843 1 1 (107904)
+I1020 19:51:32.774051 51319 net.cpp:112] label_to_onehot does not need backward computation.
+I1020 19:51:32.774057 51319 net.cpp:65] Creating Layer fc1_label
+I1020 19:51:32.774061 51319 net.cpp:224] fc1_label <- onehot
+I1020 19:51:32.774067 51319 net.cpp:185] fc1_label -> fc1_label
+I1020 19:51:32.793555 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.793581 51319 net.cpp:112] fc1_label does not need backward computation.
+I1020 19:51:32.793589 51319 net.cpp:65] Creating Layer relu1_label
+I1020 19:51:32.793594 51319 net.cpp:224] relu1_label <- fc1_label
+I1020 19:51:32.793601 51319 net.cpp:175] relu1_label -> fc1_label (in-place)
+I1020 19:51:32.793612 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.793617 51319 net.cpp:112] relu1_label does not need backward computation.
+I1020 19:51:32.793622 51319 net.cpp:65] Creating Layer fc2_label
+I1020 19:51:32.793627 51319 net.cpp:224] fc2_label <- fc1_label
+I1020 19:51:32.793632 51319 net.cpp:185] fc2_label -> fc2_label
+I1020 19:51:32.805663 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.805675 51319 net.cpp:112] fc2_label does not need backward computation.
+I1020 19:51:32.805680 51319 net.cpp:65] Creating Layer relu2_label
+I1020 19:51:32.805685 51319 net.cpp:224] relu2_label <- fc2_label
+I1020 19:51:32.805690 51319 net.cpp:175] relu2_label -> fc2_label (in-place)
+I1020 19:51:32.805696 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.805699 51319 net.cpp:112] relu2_label does not need backward computation.
+I1020 19:51:32.805706 51319 net.cpp:65] Creating Layer fc1_angles
+I1020 19:51:32.805709 51319 net.cpp:224] fc1_angles <- angles
+I1020 19:51:32.805714 51319 net.cpp:185] fc1_angles -> fc1_angles
+I1020 19:51:32.806339 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.806349 51319 net.cpp:112] fc1_angles does not need backward computation.
+I1020 19:51:32.806354 51319 net.cpp:65] Creating Layer relu1_angles
+I1020 19:51:32.806357 51319 net.cpp:224] relu1_angles <- fc1_angles
+I1020 19:51:32.806362 51319 net.cpp:175] relu1_angles -> fc1_angles (in-place)
+I1020 19:51:32.806368 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.806372 51319 net.cpp:112] relu1_angles does not need backward computation.
+I1020 19:51:32.806377 51319 net.cpp:65] Creating Layer fc2_angles
+I1020 19:51:32.806381 51319 net.cpp:224] fc2_angles <- fc1_angles
+I1020 19:51:32.806386 51319 net.cpp:185] fc2_angles -> fc2_angles
+I1020 19:51:32.818259 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.818269 51319 net.cpp:112] fc2_angles does not need backward computation.
+I1020 19:51:32.818276 51319 net.cpp:65] Creating Layer relu2_angles
+I1020 19:51:32.818280 51319 net.cpp:224] relu2_angles <- fc2_angles
+I1020 19:51:32.818286 51319 net.cpp:175] relu2_angles -> fc2_angles (in-place)
+I1020 19:51:32.818291 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.818295 51319 net.cpp:112] relu2_angles does not need backward computation.
+I1020 19:51:32.818301 51319 net.cpp:65] Creating Layer fc1_aug_params
+I1020 19:51:32.818305 51319 net.cpp:224] fc1_aug_params <- aug_params_data_aug_1_split_1
+I1020 19:51:32.818310 51319 net.cpp:185] fc1_aug_params -> fc1_aug_params
+I1020 19:51:32.819453 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.819463 51319 net.cpp:112] fc1_aug_params does not need backward computation.
+I1020 19:51:32.819468 51319 net.cpp:65] Creating Layer relu1_aug_params
+I1020 19:51:32.819471 51319 net.cpp:224] relu1_aug_params <- fc1_aug_params
+I1020 19:51:32.819476 51319 net.cpp:175] relu1_aug_params -> fc1_aug_params (in-place)
+I1020 19:51:32.819483 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.819486 51319 net.cpp:112] relu1_aug_params does not need backward computation.
+I1020 19:51:32.819492 51319 net.cpp:65] Creating Layer fc2_aug_params
+I1020 19:51:32.819495 51319 net.cpp:224] fc2_aug_params <- fc1_aug_params
+I1020 19:51:32.819501 51319 net.cpp:185] fc2_aug_params -> fc2_aug_params
+I1020 19:51:32.831373 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.831383 51319 net.cpp:112] fc2_aug_params does not need backward computation.
+I1020 19:51:32.831389 51319 net.cpp:65] Creating Layer relu2_aug_params
+I1020 19:51:32.831393 51319 net.cpp:224] relu2_aug_params <- fc2_aug_params
+I1020 19:51:32.831398 51319 net.cpp:175] relu2_aug_params -> fc2_aug_params (in-place)
+I1020 19:51:32.831404 51319 net.cpp:82] Top shape: 128 512 1 1 (65536)
+I1020 19:51:32.831408 51319 net.cpp:112] relu2_aug_params does not need backward computation.
+I1020 19:51:32.831414 51319 net.cpp:65] Creating Layer concat
+I1020 19:51:32.831418 51319 net.cpp:224] concat <- fc2_label
+I1020 19:51:32.831423 51319 net.cpp:224] concat <- fc2_angles
+I1020 19:51:32.831426 51319 net.cpp:224] concat <- fc2_aug_params
+I1020 19:51:32.831431 51319 net.cpp:185] concat -> fc2
+I1020 19:51:32.831440 51319 net.cpp:82] Top shape: 128 1536 1 1 (196608)
+I1020 19:51:32.831445 51319 net.cpp:112] concat does not need backward computation.
+I1020 19:51:32.831450 51319 net.cpp:65] Creating Layer fc3
+I1020 19:51:32.831459 51319 net.cpp:224] fc3 <- fc2
+I1020 19:51:32.831465 51319 net.cpp:185] fc3 -> fc3
+I1020 19:51:32.902510 51319 net.cpp:82] Top shape: 128 1024 1 1 (131072)
+I1020 19:51:32.902531 51319 net.cpp:112] fc3 does not need backward computation.
+I1020 19:51:32.902539 51319 net.cpp:65] Creating Layer relu3
+I1020 19:51:32.902544 51319 net.cpp:224] relu3 <- fc3
+I1020 19:51:32.902549 51319 net.cpp:175] relu3 -> fc3 (in-place)
+I1020 19:51:32.902556 51319 net.cpp:82] Top shape: 128 1024 1 1 (131072)
+I1020 19:51:32.902560 51319 net.cpp:112] relu3 does not need backward computation.
+I1020 19:51:32.902566 51319 net.cpp:65] Creating Layer fc4
+I1020 19:51:32.902570 51319 net.cpp:224] fc4 <- fc3
+I1020 19:51:32.902575 51319 net.cpp:185] fc4 -> fc4
+I1020 19:51:32.950723 51319 net.cpp:82] Top shape: 128 1024 1 1 (131072)
+I1020 19:51:32.950742 51319 net.cpp:112] fc4 does not need backward computation.
+I1020 19:51:32.950747 51319 net.cpp:65] Creating Layer relu4
+I1020 19:51:32.950752 51319 net.cpp:224] relu4 <- fc4
+I1020 19:51:32.950757 51319 net.cpp:175] relu4 -> fc4 (in-place)
+I1020 19:51:32.950764 51319 net.cpp:82] Top shape: 128 1024 1 1 (131072)
+I1020 19:51:32.950768 51319 net.cpp:112] relu4 does not need backward computation.
+I1020 19:51:32.950773 51319 net.cpp:65] Creating Layer fc4_relu4_0_split
+I1020 19:51:32.950777 51319 net.cpp:224] fc4_relu4_0_split <- fc4
+I1020 19:51:32.950780 51319 net.cpp:175] fc4_relu4_0_split -> fc4 (in-place)
+I1020 19:51:32.950786 51319 net.cpp:185] fc4_relu4_0_split -> fc4_relu4_0_split_1
+I1020 19:51:32.950793 51319 net.cpp:82] Top shape: 128 1024 1 1 (131072)
+I1020 19:51:32.950798 51319 net.cpp:82] Top shape: 128 1024 1 1 (131072)
+I1020 19:51:32.950800 51319 net.cpp:112] fc4_relu4_0_split does not need backward computation.
+I1020 19:51:32.950806 51319 net.cpp:65] Creating Layer fc5
+I1020 19:51:32.950810 51319 net.cpp:224] fc5 <- fc4
+I1020 19:51:32.950816 51319 net.cpp:185] fc5 -> fc5
+I1020 19:51:34.259227 51319 net.cpp:82] Top shape: 128 16384 1 1 (2097152)
+I1020 19:51:34.259261 51319 net.cpp:112] fc5 does not need backward computation.
+I1020 19:51:34.259271 51319 net.cpp:65] Creating Layer relu5
+I1020 19:51:34.259277 51319 net.cpp:224] relu5 <- fc5
+I1020 19:51:34.259284 51319 net.cpp:175] relu5 -> fc5 (in-place)
+I1020 19:51:34.259294 51319 net.cpp:82] Top shape: 128 16384 1 1 (2097152)
+I1020 19:51:34.259299 51319 net.cpp:112] relu5 does not need backward computation.
+I1020 19:51:34.259304 51319 net.cpp:65] Creating Layer reshape
+I1020 19:51:34.259307 51319 net.cpp:224] reshape <- fc5
+I1020 19:51:34.259312 51319 net.cpp:185] reshape -> fc5_reshape
+I1020 19:51:34.259320 51319 net.cpp:82] Top shape: 128 256 8 8 (2097152)
+I1020 19:51:34.259323 51319 net.cpp:112] reshape does not need backward computation.
+I1020 19:51:34.259330 51319 net.cpp:65] Creating Layer deconv6
+I1020 19:51:34.259335 51319 net.cpp:224] deconv6 <- fc5_reshape
+I1020 19:51:34.259341 51319 net.cpp:185] deconv6 -> deconv6
+I1020 19:51:34.330570 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=256, K_=6400
+I1020 19:51:34.330662 51319 net.cpp:82] Top shape: 128 256 16 16 (8388608)
+I1020 19:51:34.330668 51319 net.cpp:112] deconv6 does not need backward computation.
+I1020 19:51:34.330674 51319 net.cpp:65] Creating Layer relu6
+I1020 19:51:34.330679 51319 net.cpp:224] relu6 <- deconv6
+I1020 19:51:34.330684 51319 net.cpp:175] relu6 -> deconv6 (in-place)
+I1020 19:51:34.330692 51319 net.cpp:82] Top shape: 128 256 16 16 (8388608)
+I1020 19:51:34.330695 51319 net.cpp:112] relu6 does not need backward computation.
+I1020 19:51:34.330704 51319 net.cpp:65] Creating Layer deconv7
+I1020 19:51:34.330708 51319 net.cpp:224] deconv7 <- deconv6
+I1020 19:51:34.330713 51319 net.cpp:185] deconv7 -> deconv7
+I1020 19:51:34.356457 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=256, K_=2300
+I1020 19:51:34.356600 51319 net.cpp:82] Top shape: 128 92 32 32 (12058624)
+I1020 19:51:34.356607 51319 net.cpp:112] deconv7 does not need backward computation.
+I1020 19:51:34.356613 51319 net.cpp:65] Creating Layer relu7
+I1020 19:51:34.356622 51319 net.cpp:224] relu7 <- deconv7
+I1020 19:51:34.356628 51319 net.cpp:175] relu7 -> deconv7 (in-place)
+I1020 19:51:34.356634 51319 net.cpp:82] Top shape: 128 92 32 32 (12058624)
+I1020 19:51:34.356638 51319 net.cpp:112] relu7 does not need backward computation.
+I1020 19:51:34.356644 51319 net.cpp:65] Creating Layer deconv8_new
+I1020 19:51:34.356648 51319 net.cpp:224] deconv8_new <- deconv7
+I1020 19:51:34.356653 51319 net.cpp:185] deconv8_new -> deconv8
+I1020 19:51:34.365803 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=92, K_=2300
+I1020 19:51:34.365828 51319 net.cpp:82] Top shape: 128 92 64 64 (48234496)
+I1020 19:51:34.365833 51319 net.cpp:107] deconv8_new needs backward computation.
+I1020 19:51:34.365838 51319 net.cpp:65] Creating Layer relu8
+I1020 19:51:34.365841 51319 net.cpp:224] relu8 <- deconv8
+I1020 19:51:34.365846 51319 net.cpp:175] relu8 -> deconv8 (in-place)
+I1020 19:51:34.365851 51319 net.cpp:82] Top shape: 128 92 64 64 (48234496)
+I1020 19:51:34.365855 51319 net.cpp:107] relu8 needs backward computation.
+I1020 19:51:34.365860 51319 net.cpp:65] Creating Layer deconv9_new
+I1020 19:51:34.365864 51319 net.cpp:224] deconv9_new <- deconv8
+I1020 19:51:34.365869 51319 net.cpp:185] deconv9_new -> deconv9
+I1020 19:51:34.366188 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=92, K_=75
+I1020 19:51:34.366212 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:34.366216 51319 net.cpp:107] deconv9_new needs backward computation.
+I1020 19:51:34.366225 51319 net.cpp:65] Creating Layer fc5_segm
+I1020 19:51:34.366230 51319 net.cpp:224] fc5_segm <- fc4_relu4_0_split_1
+I1020 19:51:34.366235 51319 net.cpp:185] fc5_segm -> fc5_segm
+I1020 19:51:34.862015 51319 net.cpp:82] Top shape: 128 8192 1 1 (1048576)
+I1020 19:51:34.862046 51319 net.cpp:112] fc5_segm does not need backward computation.
+I1020 19:51:34.862056 51319 net.cpp:65] Creating Layer relu5_segm
+I1020 19:51:34.862061 51319 net.cpp:224] relu5_segm <- fc5_segm
+I1020 19:51:34.862069 51319 net.cpp:175] relu5_segm -> fc5_segm (in-place)
+I1020 19:51:34.862077 51319 net.cpp:82] Top shape: 128 8192 1 1 (1048576)
+I1020 19:51:34.862082 51319 net.cpp:112] relu5_segm does not need backward computation.
+I1020 19:51:34.862087 51319 net.cpp:65] Creating Layer reshape
+I1020 19:51:34.862089 51319 net.cpp:224] reshape <- fc5_segm
+I1020 19:51:34.862093 51319 net.cpp:185] reshape -> fc5_segm_reshape
+I1020 19:51:34.862100 51319 net.cpp:82] Top shape: 128 128 8 8 (1048576)
+I1020 19:51:34.862103 51319 net.cpp:112] reshape does not need backward computation.
+I1020 19:51:34.862112 51319 net.cpp:65] Creating Layer deconv6_segm
+I1020 19:51:34.862115 51319 net.cpp:224] deconv6_segm <- fc5_segm_reshape
+I1020 19:51:34.862120 51319 net.cpp:185] deconv6_segm -> deconv6_segm
+I1020 19:51:34.873632 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=128, K_=2300
+I1020 19:51:34.873672 51319 net.cpp:82] Top shape: 128 92 16 16 (3014656)
+I1020 19:51:34.873677 51319 net.cpp:112] deconv6_segm does not need backward computation.
+I1020 19:51:34.873683 51319 net.cpp:65] Creating Layer relu6_segm
+I1020 19:51:34.873687 51319 net.cpp:224] relu6_segm <- deconv6_segm
+I1020 19:51:34.873692 51319 net.cpp:175] relu6_segm -> deconv6_segm (in-place)
+I1020 19:51:34.873697 51319 net.cpp:82] Top shape: 128 92 16 16 (3014656)
+I1020 19:51:34.873702 51319 net.cpp:112] relu6_segm does not need backward computation.
+I1020 19:51:34.873708 51319 net.cpp:65] Creating Layer deconv7_segm
+I1020 19:51:34.873711 51319 net.cpp:224] deconv7_segm <- deconv6_segm
+I1020 19:51:34.873715 51319 net.cpp:185] deconv7_segm -> deconv7_segm
+I1020 19:51:34.876540 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=92, K_=800
+I1020 19:51:34.876564 51319 net.cpp:82] Top shape: 128 32 32 32 (4194304)
+I1020 19:51:34.876569 51319 net.cpp:112] deconv7_segm does not need backward computation.
+I1020 19:51:34.876572 51319 net.cpp:65] Creating Layer relu7_segm
+I1020 19:51:34.876576 51319 net.cpp:224] relu7_segm <- deconv7_segm
+I1020 19:51:34.876580 51319 net.cpp:175] relu7_segm -> deconv7_segm (in-place)
+I1020 19:51:34.876590 51319 net.cpp:82] Top shape: 128 32 32 32 (4194304)
+I1020 19:51:34.876595 51319 net.cpp:112] relu7_segm does not need backward computation.
+I1020 19:51:34.876600 51319 net.cpp:65] Creating Layer deconv8_segm_new
+I1020 19:51:34.876605 51319 net.cpp:224] deconv8_segm_new <- deconv7_segm
+I1020 19:51:34.876608 51319 net.cpp:185] deconv8_segm_new -> deconv8_segm
+I1020 19:51:34.877601 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=32, K_=800
+I1020 19:51:34.877611 51319 net.cpp:82] Top shape: 128 32 64 64 (16777216)
+I1020 19:51:34.877615 51319 net.cpp:107] deconv8_segm_new needs backward computation.
+I1020 19:51:34.877619 51319 net.cpp:65] Creating Layer relu8_segm
+I1020 19:51:34.877624 51319 net.cpp:224] relu8_segm <- deconv8_segm
+I1020 19:51:34.877627 51319 net.cpp:175] relu8_segm -> deconv8_segm (in-place)
+I1020 19:51:34.877631 51319 net.cpp:82] Top shape: 128 32 64 64 (16777216)
+I1020 19:51:34.877635 51319 net.cpp:107] relu8_segm needs backward computation.
+I1020 19:51:34.877642 51319 net.cpp:65] Creating Layer deconv9_segm_new
+I1020 19:51:34.877646 51319 net.cpp:224] deconv9_segm_new <- deconv8_segm
+I1020 19:51:34.877652 51319 net.cpp:185] deconv9_segm_new -> deconv9_segm
+I1020 19:51:34.877758 51319 deconv_orth_layer.cpp:86] Convolutional orth layer: M_=32, K_=75
+I1020 19:51:34.877766 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:34.877769 51319 net.cpp:107] deconv9_segm_new needs backward computation.
+I1020 19:51:34.877774 51319 net.cpp:65] Creating Layer eltwise
+I1020 19:51:34.877778 51319 net.cpp:224] eltwise <- data_data_0_split_1
+I1020 19:51:34.877781 51319 net.cpp:224] eltwise <- segm_segm_0_split_1
+I1020 19:51:34.877789 51319 net.cpp:185] eltwise -> segm_data
+I1020 19:51:34.877799 51319 net.cpp:82] Top shape: 128 3 128 128 (6291456)
+I1020 19:51:34.877804 51319 net.cpp:112] eltwise does not need backward computation.
+I1020 19:51:34.877809 51319 net.cpp:65] Creating Layer recon_data
+I1020 19:51:34.877811 51319 net.cpp:224] recon_data <- deconv9
+I1020 19:51:34.877815 51319 net.cpp:224] recon_data <- segm_data
+I1020 19:51:34.877822 51319 net.cpp:107] recon_data needs backward computation.
+I1020 19:51:34.877826 51319 net.cpp:65] Creating Layer recon_segm
+I1020 19:51:34.877830 51319 net.cpp:224] recon_segm <- deconv9_segm
+I1020 19:51:34.877833 51319 net.cpp:224] recon_segm <- segm_segm_0_split_2
+I1020 19:51:34.877837 51319 net.cpp:107] recon_segm needs backward computation.
+I1020 19:51:34.877840 51319 net.cpp:119] This network produces output data_aug
+I1020 19:51:34.877843 51319 net.cpp:119] This network produces output label1
+I1020 19:51:34.877847 51319 net.cpp:119] This network produces output labels
+I1020 19:51:34.877851 51319 net.cpp:119] This network produces output segm_aug
+I1020 19:51:34.877882 51319 net.cpp:234] Collecting Learning Rate and Weight Decay.
+I1020 19:51:34.877899 51319 net.cpp:157] Network initialization done.
+I1020 19:51:34.877903 51319 net.cpp:158] Memory required for data: 0
+I1020 19:51:34.877972 51319 solver.cpp:123] Solver scaffolding done.
+I1020 19:51:34.877977 51319 solver.cpp:129] Solving CaffeNet
+I1020 19:51:34.877992 51319 solver.cpp:140] Loading weights from /misc/lmbraid10/dosovits/Caffe/Saved/generate_chairs_med_augparams_largenet_1_1/generate_chairs_iter_300000
+I1020 19:51:35.142912 51319 net.cpp:377] Copying source layer data
+I1020 19:51:35.142937 51319 net.cpp:374] Ignoring source layer data_ds
+I1020 19:51:35.142941 51319 net.cpp:377] Copying source layer data_aug
+I1020 19:51:35.142946 51319 net.cpp:377] Copying source layer aug_params_data_aug_1_split
+I1020 19:51:35.142948 51319 net.cpp:377] Copying source layer segm
+I1020 19:51:35.142952 51319 net.cpp:374] Ignoring source layer segm_ds
+I1020 19:51:35.142956 51319 net.cpp:377] Copying source layer segm_aug
+I1020 19:51:35.142959 51319 net.cpp:374] Ignoring source layer segm_aug_segm_aug_0_split
+I1020 19:51:35.142962 51319 net.cpp:377] Copying source layer angles
+I1020 19:51:35.142966 51319 net.cpp:377] Copying source layer label_to_onehot
+I1020 19:51:35.142969 51319 net.cpp:377] Copying source layer fc1_label
+I1020 19:51:35.143468 51319 net.cpp:377] Copying source layer relu1_label
+I1020 19:51:35.143477 51319 net.cpp:377] Copying source layer fc2_label
+I1020 19:51:35.143767 51319 net.cpp:377] Copying source layer relu2_label
+I1020 19:51:35.143775 51319 net.cpp:377] Copying source layer fc1_angles
+I1020 19:51:35.143782 51319 net.cpp:377] Copying source layer relu1_angles
+I1020 19:51:35.143786 51319 net.cpp:377] Copying source layer fc2_angles
+I1020 19:51:35.144076 51319 net.cpp:377] Copying source layer relu2_angles
+I1020 19:51:35.144084 51319 net.cpp:377] Copying source layer fc1_aug_params
+I1020 19:51:35.144106 51319 net.cpp:377] Copying source layer relu1_aug_params
+I1020 19:51:35.144110 51319 net.cpp:377] Copying source layer fc2_aug_params
+I1020 19:51:35.144400 51319 net.cpp:377] Copying source layer relu2_aug_params
+I1020 19:51:35.144408 51319 net.cpp:377] Copying source layer concat
+I1020 19:51:35.144412 51319 net.cpp:377] Copying source layer fc3
+I1020 19:51:35.146136 51319 net.cpp:377] Copying source layer relu3
+I1020 19:51:35.146154 51319 net.cpp:377] Copying source layer fc4
+I1020 19:51:35.147294 51319 net.cpp:377] Copying source layer relu4
+I1020 19:51:35.147305 51319 net.cpp:377] Copying source layer fc4_relu4_0_split
+I1020 19:51:35.147310 51319 net.cpp:377] Copying source layer fc5
+I1020 19:51:35.165807 51319 net.cpp:377] Copying source layer relu5
+I1020 19:51:35.165835 51319 net.cpp:377] Copying source layer reshape
+I1020 19:51:35.165838 51319 net.cpp:377] Copying source layer deconv6
+I1020 19:51:35.167639 51319 net.cpp:377] Copying source layer relu6
+I1020 19:51:35.167657 51319 net.cpp:377] Copying source layer deconv7
+I1020 19:51:35.168298 51319 net.cpp:377] Copying source layer relu7
+I1020 19:51:35.168305 51319 net.cpp:374] Ignoring source layer deconv8
+I1020 19:51:35.168309 51319 net.cpp:377] Copying source layer fc5_segm
+I1020 19:51:35.177466 51319 net.cpp:377] Copying source layer relu5_segm
+I1020 19:51:35.177491 51319 net.cpp:377] Copying source layer reshape
+I1020 19:51:35.177495 51319 net.cpp:377] Copying source layer deconv6_segm
+I1020 19:51:35.177835 51319 net.cpp:377] Copying source layer relu6_segm
+I1020 19:51:35.177842 51319 net.cpp:377] Copying source layer deconv7_segm
+I1020 19:51:35.177932 51319 net.cpp:377] Copying source layer relu7_segm
+I1020 19:51:35.177938 51319 net.cpp:374] Ignoring source layer deconv8_segm
+I1020 19:51:35.177942 51319 net.cpp:377] Copying source layer eltwise
+I1020 19:51:35.177945 51319 net.cpp:377] Copying source layer recon_data
+I1020 19:51:35.177949 51319 net.cpp:377] Copying source layer recon_segm
+I1020 19:51:40.463193 51319 solver.cpp:371] Iteration 10, lr = 1e-05
+I1020 19:51:40.659260 51319 solver.cpp:170] Iteration 10, loss layer recon_data = 1929.85
+I1020 19:51:40.659273 51319 solver.cpp:170] Iteration 10, loss layer recon_segm = 1187.78
+I1020 19:51:40.659278 51319 solver.cpp:171] Iteration 10, total loss = 3117.64
+I1020 19:51:45.756706 51319 solver.cpp:371] Iteration 20, lr = 1e-05
+I1020 19:51:45.952837 51319 solver.cpp:170] Iteration 20, loss layer recon_data = 1393.63
+I1020 19:51:45.952850 51319 solver.cpp:170] Iteration 20, loss layer recon_segm = 910.844
+I1020 19:51:45.952855 51319 solver.cpp:171] Iteration 20, total loss = 2304.48
+I1020 19:51:51.049300 51319 solver.cpp:371] Iteration 30, lr = 1e-05
+I1020 19:51:51.245537 51319 solver.cpp:170] Iteration 30, loss layer recon_data = 1209.36
+I1020 19:51:51.245550 51319 solver.cpp:170] Iteration 30, loss layer recon_segm = 781.66
+I1020 19:51:51.245556 51319 solver.cpp:171] Iteration 30, total loss = 1991.02
+I1020 19:51:56.342525 51319 solver.cpp:371] Iteration 40, lr = 1e-05
+I1020 19:51:56.538805 51319 solver.cpp:170] Iteration 40, loss layer recon_data = 1310.87
+I1020 19:51:56.538820 51319 solver.cpp:170] Iteration 40, loss layer recon_segm = 712.086
+I1020 19:51:56.538825 51319 solver.cpp:171] Iteration 40, total loss = 2022.95
+I1020 19:52:01.634452 51319 solver.cpp:371] Iteration 50, lr = 1e-05
+I1020 19:52:01.830662 51319 solver.cpp:170] Iteration 50, loss layer recon_data = 1090.17
+I1020 19:52:01.830680 51319 solver.cpp:170] Iteration 50, loss layer recon_segm = 658.747
+I1020 19:52:01.830687 51319 solver.cpp:171] Iteration 50, total loss = 1748.91
+I1020 19:52:06.928375 51319 solver.cpp:371] Iteration 60, lr = 1e-05
+I1020 19:52:07.124569 51319 solver.cpp:170] Iteration 60, loss layer recon_data = 1117.66
+I1020 19:52:07.124583 51319 solver.cpp:170] Iteration 60, loss layer recon_segm = 647.432
+I1020 19:52:07.124588 51319 solver.cpp:171] Iteration 60, total loss = 1765.09
+I1020 19:52:12.223017 51319 solver.cpp:371] Iteration 70, lr = 1e-05
+I1020 19:52:12.419270 51319 solver.cpp:170] Iteration 70, loss layer recon_data = 1169.17
+I1020 19:52:12.419283 51319 solver.cpp:170] Iteration 70, loss layer recon_segm = 647.581
+I1020 19:52:12.419288 51319 solver.cpp:171] Iteration 70, total loss = 1816.76
+I1020 19:52:17.591605 51319 solver.cpp:371] Iteration 80, lr = 1e-05
+I1020 19:52:17.790221 51319 solver.cpp:170] Iteration 80, loss layer recon_data = 1148.25
+I1020 19:52:17.790235 51319 solver.cpp:170] Iteration 80, loss layer recon_segm = 658.588
+I1020 19:52:17.790240 51319 solver.cpp:171] Iteration 80, total loss = 1806.83
+I1020 19:52:22.927729 51319 solver.cpp:371] Iteration 90, lr = 1e-05
+I1020 19:52:23.126301 51319 solver.cpp:170] Iteration 90, loss layer recon_data = 1149.5
+I1020 19:52:23.126313 51319 solver.cpp:170] Iteration 90, loss layer recon_segm = 627.447
+I1020 19:52:23.126318 51319 solver.cpp:171] Iteration 90, total loss = 1776.95
+I1020 19:52:28.262573 51319 solver.cpp:371] Iteration 100, lr = 1e-05
+I1020 19:52:28.461244 51319 solver.cpp:170] Iteration 100, loss layer recon_data = 1126.26
+I1020 19:52:28.461257 51319 solver.cpp:170] Iteration 100, loss layer recon_segm = 636.485
+I1020 19:52:28.461262 51319 solver.cpp:171] Iteration 100, total loss = 1762.75
+I1020 19:52:28.591888 51319 solver.cpp:274] Snapshotting to generate_chairs_iter_100
+I1020 19:52:30.886028 51319 solver.cpp:281] Snapshotting solver state to generate_chairs_iter_100.solverstate
+I1020 19:52:38.219745 51319 solver.cpp:371] Iteration 110, lr = 1e-05
+I1020 19:52:38.415961 51319 solver.cpp:170] Iteration 110, loss layer recon_data = 1074.74
+I1020 19:52:38.415974 51319 solver.cpp:170] Iteration 110, loss layer recon_segm = 627.616
+I1020 19:52:38.415979 51319 solver.cpp:171] Iteration 110, total loss = 1702.35
+I1020 19:52:43.510642 51319 solver.cpp:371] Iteration 120, lr = 1e-05
+I1020 19:52:43.706625 51319 solver.cpp:170] Iteration 120, loss layer recon_data = 1027.06
+I1020 19:52:43.706639 51319 solver.cpp:170] Iteration 120, loss layer recon_segm = 591.34
+I1020 19:52:43.706643 51319 solver.cpp:171] Iteration 120, total loss = 1618.41
+I1020 19:52:48.797513 51319 solver.cpp:371] Iteration 130, lr = 1e-05
+I1020 19:52:48.993711 51319 solver.cpp:170] Iteration 130, loss layer recon_data = 1091.03
+I1020 19:52:48.993724 51319 solver.cpp:170] Iteration 130, loss layer recon_segm = 595.94
+I1020 19:52:48.993731 51319 solver.cpp:171] Iteration 130, total loss = 1686.97
+I1020 19:52:54.085486 51319 solver.cpp:371] Iteration 140, lr = 1e-05
+I1020 19:52:54.281647 51319 solver.cpp:170] Iteration 140, loss layer recon_data = 1134.08
+I1020 19:52:54.281661 51319 solver.cpp:170] Iteration 140, loss layer recon_segm = 626.845
+I1020 19:52:54.281666 51319 solver.cpp:171] Iteration 140, total loss = 1760.92
+I1020 19:52:59.419317 51319 solver.cpp:371] Iteration 150, lr = 1e-05
+I1020 19:52:59.617853 51319 solver.cpp:170] Iteration 150, loss layer recon_data = 1118.86
+I1020 19:52:59.617866 51319 solver.cpp:170] Iteration 150, loss layer recon_segm = 586.753
+I1020 19:52:59.617871 51319 solver.cpp:171] Iteration 150, total loss = 1705.61
+I1020 19:53:04.760690 51319 solver.cpp:371] Iteration 160, lr = 1e-05
+I1020 19:53:04.959102 51319 solver.cpp:170] Iteration 160, loss layer recon_data = 1096.53
+I1020 19:53:04.959115 51319 solver.cpp:170] Iteration 160, loss layer recon_segm = 592.987
+I1020 19:53:04.959120 51319 solver.cpp:171] Iteration 160, total loss = 1689.52
+I1020 19:53:10.241153 51319 solver.cpp:371] Iteration 170, lr = 1e-05
+I1020 19:53:10.447135 51319 solver.cpp:170] Iteration 170, loss layer recon_data = 1065.62
+I1020 19:53:10.447149 51319 solver.cpp:170] Iteration 170, loss layer recon_segm = 583.541
+I1020 19:53:10.447154 51319 solver.cpp:171] Iteration 170, total loss = 1649.16
+I1020 19:53:15.738629 51319 solver.cpp:371] Iteration 180, lr = 1e-05
+I1020 19:53:15.944844 51319 solver.cpp:170] Iteration 180, loss layer recon_data = 1080.3
+I1020 19:53:15.944856 51319 solver.cpp:170] Iteration 180, loss layer recon_segm = 579.429
+I1020 19:53:15.944861 51319 solver.cpp:171] Iteration 180, total loss = 1659.73
+I1020 19:53:21.237139 51319 solver.cpp:371] Iteration 190, lr = 1e-05
+I1020 19:53:21.442847 51319 solver.cpp:170] Iteration 190, loss layer recon_data = 1066.89
+I1020 19:53:21.442860 51319 solver.cpp:170] Iteration 190, loss layer recon_segm = 570.094
+I1020 19:53:21.442865 51319 solver.cpp:171] Iteration 190, total loss = 1636.99
+I1020 19:53:26.735723 51319 solver.cpp:371] Iteration 200, lr = 1e-05
+I1020 19:53:26.941632 51319 solver.cpp:170] Iteration 200, loss layer recon_data = 1124.78
+I1020 19:53:26.941645 51319 solver.cpp:170] Iteration 200, loss layer recon_segm = 564.823
+I1020 19:53:26.941650 51319 solver.cpp:171] Iteration 200, total loss = 1689.6
+I1020 19:53:27.066798 51319 solver.cpp:274] Snapshotting to generate_chairs_iter_200
+I1020 19:53:29.372710 51319 solver.cpp:281] Snapshotting solver state to generate_chairs_iter_200.solverstate
+I1020 19:53:36.742501 51319 solver.cpp:371] Iteration 210, lr = 1e-05
+I1020 19:53:36.941105 51319 solver.cpp:170] Iteration 210, loss layer recon_data = 1052.66
+I1020 19:53:36.941119 51319 solver.cpp:170] Iteration 210, loss layer recon_segm = 578.75
+I1020 19:53:36.941124 51319 solver.cpp:171] Iteration 210, total loss = 1631.41
+I1020 19:53:42.080010 51319 solver.cpp:371] Iteration 220, lr = 1e-05
+I1020 19:53:42.278352 51319 solver.cpp:170] Iteration 220, loss layer recon_data = 1068.71
+I1020 19:53:42.278365 51319 solver.cpp:170] Iteration 220, loss layer recon_segm = 555.193
+I1020 19:53:42.278370 51319 solver.cpp:171] Iteration 220, total loss = 1623.91
+I1020 19:53:47.423667 51319 solver.cpp:371] Iteration 230, lr = 1e-05
+I1020 19:53:47.621872 51319 solver.cpp:170] Iteration 230, loss layer recon_data = 1088.9
+I1020 19:53:47.621886 51319 solver.cpp:170] Iteration 230, loss layer recon_segm = 557.974
+I1020 19:53:47.621892 51319 solver.cpp:171] Iteration 230, total loss = 1646.87
+I1020 19:53:52.876760 51319 solver.cpp:371] Iteration 240, lr = 1e-05
+I1020 19:53:53.085216 51319 solver.cpp:170] Iteration 240, loss layer recon_data = 1091.77
+I1020 19:53:53.085229 51319 solver.cpp:170] Iteration 240, loss layer recon_segm = 589.283
+I1020 19:53:53.085234 51319 solver.cpp:171] Iteration 240, total loss = 1681.05
+I1020 19:53:58.425330 51319 solver.cpp:371] Iteration 250, lr = 1e-05
+I1020 19:53:58.633863 51319 solver.cpp:170] Iteration 250, loss layer recon_data = 1001.83
+I1020 19:53:58.633877 51319 solver.cpp:170] Iteration 250, loss layer recon_segm = 560.931
+I1020 19:53:58.633882 51319 solver.cpp:171] Iteration 250, total loss = 1562.76
